@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Join {{ business_name }} on FinFlow</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            line-height: 1.6;
+            color: #374151;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 32px;
+            font-weight: bold;
+        }
+        .header p {
+            margin: 8px 0 0 0;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        .content {
+            padding: 40px;
+        }
+        .greeting {
+            font-size: 16px;
+            margin-bottom: 20px;
+            color: #111827;
+        }
+        .message {
+            color: #6B7280;
+            margin-bottom: 25px;
+            font-size: 14px;
+            line-height: 1.8;
+        }
+        .invitation-card {
+            background: #F0F9FF;
+            border: 2px solid #3B82F6;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 25px 0;
+        }
+        .invitation-card p {
+            margin: 0 0 10px 0;
+            color: #1E40AF;
+            font-weight: 600;
+        }
+        .invitation-card .org-name {
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+        .cta-button {
+            flex: 1;
+            min-width: 200px;
+            padding: 14px 32px;
+            background: #2563eb;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            text-align: center;
+            display: inline-block;
+        }
+        .cta-button:hover {
+            background: #1d4ed8;
+        }
+        .secondary-button {
+            background: #E5E7EB;
+            color: #374151;
+            text-decoration: none;
+            border-radius: 6px;
+            text-align: center;
+            display: inline-block;
+            padding: 14px 32px;
+        }
+        .secondary-button:hover {
+            background: #D1D5DB;
+        }
+        .expiration {
+            padding: 15px;
+            background: #FEF3C7;
+            border-left: 4px solid #FBBF24;
+            border-radius: 4px;
+            margin: 25px 0;
+        }
+        .expiration p {
+            margin: 0;
+            font-size: 12px;
+            color: #78350F;
+        }
+        .inviter-info {
+            padding: 15px;
+            background: #F3F4F6;
+            border-radius: 6px;
+            margin: 20px 0;
+            font-size: 13px;
+        }
+        .inviter-info p {
+            margin: 5px 0;
+            color: #6B7280;
+        }
+        .inviter-name {
+            color: #111827;
+            font-weight: 600;
+        }
+        .footer {
+            padding: 20px;
+            background: #F9FAFB;
+            border-top: 1px solid #E5E7EB;
+            text-align: center;
+            font-size: 12px;
+            color: #6B7280;
+        }
+        .footer a {
+            color: #2563eb;
+            text-decoration: none;
+        }
+        .footer p {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>FinFlow</h1>
+            <p>You're invited to join a team</p>
+        </div>
+        
+        <div class="content">
+            <p class="greeting">Hi {{ first_name }},</p>
+            
+            <p class="message">
+                <span class="inviter-name">{{ inviter_name }}</span> has invited you to join <strong>{{ business_name }}</strong> as a member of their organization on FinFlow.
+            </p>
+            
+            <div class="invitation-card">
+                <p class="org-name">{{ business_name }}</p>
+            </div>
+            
+            <p class="message">
+                Accept the invitation to get started collaborating with your team. You'll have instant access to all organization resources and tools.
+            </p>
+            
+            <div class="button-group">
+                <a href="{{ accept_link }}" class="cta-button">Accept Invitation</a>
+                <a href="{{ decline_link }}" class="secondary-button">Decline</a>
+            </div>
+            
+            <div class="expiration">
+                <p><strong>This invitation expires in 7 days.</strong> Make sure to accept it before it expires, or ask {{ inviter_name }} to send a new invitation.</p>
+            </div>
+            
+            <p class="message">
+                If you have any questions or concerns about this invitation, please contact {{ business_email }} or <a href="#" style="color: #2563eb;">visit our support page</a>.
+            </p>
+        </div>
+        
+        <div class="footer">
+            <p>© 2026 FinFlow. All rights reserved.</p>
+            <p><a href="#">Privacy Policy</a> | <a href="#">Terms of Service</a> | <a href="#">Contact Support</a></p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,18 @@
+You're Invited to Join {{ business_name }}
+
+Hi {{ first_name }},
+
+{{ inviter_name }} has invited you to join {{ business_name }} as a member of their organization on FinFlow.
+
+Click the link below to accept the invitation:
+{{ accept_link }}
+
+If you prefer not to join, you can ignore this email or click the link below to decline:
+{{ decline_link }}
+
+This invitation will expire in 7 days.
+
+Questions? Contact {{ business_email }} or visit our support page.
+
+Best regards,
+The FinFlow Team

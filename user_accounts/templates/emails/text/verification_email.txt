@@ -1,0 +1,23 @@
+Hello {{ first_name }},
+
+Welcome to FinFlow!
+
+Thank you for signing up. To complete your account setup and verify your email address, please click the link below:
+
+{{ verification_link }}
+
+This link will expire in 24 hours. If you did not sign up for a FinFlow account, please ignore this email.
+
+Important Security Notice:
+- Never share this link with anyone
+- FinFlow will never ask for your password via email
+- If you didn't request this verification, your email may have been used without permission
+
+If you have any questions, please contact our support team at support@finflow.com
+
+Best regards,
+The FinFlow Team
+
+---
+FinFlow - Secure Financial Platform
+https://finflow.com

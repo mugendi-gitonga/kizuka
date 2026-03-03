@@ -1,0 +1,28 @@
+You're Invited to Join {{ business_name }}
+
+Hello {{ first_name }},
+
+You've been invited to join {{ business_name }} on FinFlow. We're excited to have you on board!
+
+ACCEPT YOUR INVITATION
+Click the link below to set up your account:
+{{ invite_link }}
+
+WHAT'S NEXT?
+1. Click the link above to accept the invitation
+2. Enter your personal details and set a secure password
+3. Verify your email address
+4. Start collaborating with your team
+
+IMPORTANT: This invitation expires in 7 days. Accept it within the next week to activate your account.
+
+DID YOU NOT EXPECT THIS?
+If you believe this invitation was sent in error, you can safely ignore this email. Your email won't be signed up for anything unless you accept the invitation.
+
+---
+FinFlow | Your trusted financial collaboration platform
+
+Questions? Contact support at support@example.com
+Privacy Policy: https://example.com/privacy
+
+© 2026 FinFlow. All rights reserved.

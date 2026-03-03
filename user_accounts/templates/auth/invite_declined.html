@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center px-4">
+    <div class="w-full max-w-md">
+        <!-- Card Container -->
+        <div class="bg-white rounded-2xl shadow-lg p-8 border border-slate-200">
+            
+            {% if error %}
+                <!-- Error State -->
+                <div class="text-center mb-6">
+                    <div class="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                        <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </div>
+                    <h2 class="text-2xl font-bold text-slate-900 mb-2">Invalid Invitation</h2>
+                    <p class="text-slate-600 mb-6">{{ error }}</p>
+                </div>
+            {% else %}
+                <!-- Success State -->
+                <div class="text-center mb-6">
+                    <div class="mx-auto w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                        <svg class="w-8 h-8 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                    </div>
+                    <h2 class="text-2xl font-bold text-slate-900 mb-2">Invitation Declined</h2>
+                    <p class="text-slate-600 mb-2">You have successfully declined the invitation to join<span class="font-semibold">{{ business_name }}</span>.</p>
+                    <p class="text-sm text-slate-500">If you change your mind, you can request another invitation from the organization.</p>
+                </div>
+            {% endif %}
+
+            <!-- Actions -->
+            <div class="flex flex-col gap-3 pt-6">
+                <a href="{% url 'login' %}" class="btn btn-primary w-full rounded-lg">
+                    Return to Login
+                </a>
+                <a href="{% url 'login' %}" class="btn btn-outline w-full rounded-lg">
+                    Back to Home
+                </a>
+            </div>
+
+            <!-- Support Text -->
+            <p class="text-center text-xs text-slate-500 mt-6">
+                Need help? Contact support at <a href="mailto:support@example.com" class="text-blue-600 hover:underline">support@example.com</a>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

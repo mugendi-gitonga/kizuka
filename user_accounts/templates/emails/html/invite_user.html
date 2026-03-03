@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Join {{ business_name }} on FinFlow</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            line-height: 1.6;
+            color: #374151;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            padding: 40px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 32px;
+            font-weight: bold;
+        }
+        .header p {
+            margin: 8px 0 0 0;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        .content {
+            padding: 40px;
+        }
+        .greeting {
+            font-size: 16px;
+            margin-bottom: 20px;
+            color: #111827;
+        }
+        .message {
+            color: #6B7280;
+            margin-bottom: 25px;
+            font-size: 14px;
+            line-height: 1.8;
+        }
+        .invitation-card {
+            background: #F0F9FF;
+            border: 2px solid #3B82F6;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 25px 0;
+        }
+        .invitation-card p {
+            margin: 0 0 10px 0;
+            color: #1E40AF;
+            font-weight: 600;
+        }
+        .invitation-card .org-name {
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+        .cta-button {
+            display: inline-block;
+            padding: 14px 32px;
+            background: #2563eb;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            text-align: center;
+            margin: 30px 0;
+        }
+        .cta-button:hover {
+            background: #1d4ed8;
+        }
+        .setup-steps {
+            background: #F3F4F6;
+            border-radius: 6px;
+            padding: 20px;
+            margin: 25px 0;
+            font-size: 13px;
+        }
+        .setup-steps h3 {
+            margin: 0 0 15px 0;
+            color: #111827;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .setup-steps ol {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .setup-steps li {
+            margin-bottom: 10px;
+            color: #374151;
+        }
+        .expiration {
+            padding: 15px;
+            background: #FEF3C7;
+            border-left: 4px solid #FBBF24;
+            border-radius: 4px;
+            margin: 25px 0;
+        }
+        .expiration p {
+            margin: 0;
+            font-size: 12px;
+            color: #78350F;
+        }
+        .footer {
+            padding: 20px;
+            background: #F9FAFB;
+            border-top: 1px solid #E5E7EB;
+            text-align: center;
+            font-size: 12px;
+            color: #6B7280;
+        }
+        .footer a {
+            color: #2563eb;
+            text-decoration: none;
+        }
+        .footer p {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>FinFlow</h1>
+            <p>Welcome to the team!</p>
+        </div>
+        <div class="content">
+            <p class="greeting">Hello {{ first_name }},</p>
+            
+            <p class="message">
+                You've been invited to join <strong>{{ business_name }}</strong> on FinFlow. We're excited to have you on board!
+            </p>
+            
+            <div class="invitation-card">
+                <p class="org-name">{{ business_name }}</p>
+                <p>You've been invited to join this organization. Click the button below to set up your account and get started.</p>
+            </div>
+            
+            <div style="text-align: center;">
+                <a href="{{ invite_link }}" class="cta-button">Accept Invitation & Create Account</a>
+            </div>
+            
+            <div class="setup-steps">
+                <h3>What's Next?</h3>
+                <ol>
+                    <li>Click the button above to accept the invitation</li>
+                    <li>Enter your personal details and set a secure password</li>
+                    <li>Verify your email address</li>
+                    <li>Start collaborating with your team</li>
+                </ol>
+            </div>
+            
+            <div class="expiration">
+                <p><strong>Invitation expires in 7 days</strong> - Accept this invitation within the next week to activate your account.</p>
+            </div>
+            
+            <p style="color: #6B7280; font-size: 13px;">
+                If you did not expect this invitation or believe this was sent in error, you can safely ignore this email. Your email won't be signed up for anything unless you accept the invitation.
+            </p>
+        </div>
+        <div class="footer">
+            <p><strong>FinFlow</strong> | Your trusted financial collaboration platform</p>
+            <p>
+                Questions? <a href="mailto:support@example.com">Contact support</a> | 
+                <a href="#">Privacy Policy</a>
+            </p>
+            <p style="margin-top: 10px; color: #9CA3AF;">
+                © 2026 FinFlow. All rights reserved.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

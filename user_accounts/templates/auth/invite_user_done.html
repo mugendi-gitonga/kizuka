@@ -1,0 +1,92 @@
+{% extends "auth/auth_base.html" %}
+
+{% block content %}
+    <div class="flex items-center justify-center p-4">
+        <div class="w-full max-w-md md:max-w-lg lg:max-w-2xl">
+            <!-- Card Container -->
+            <div class="bg-white rounded-lg shadow-lg px-4 py-8">
+                <!-- Success Icon -->
+                <div class="text-center mb-8">
+                    <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-check-circle text-green-600 text-3xl"></i>
+                    </div>
+                    <h1 class="text-3xl font-bold text-slate-900 mb-2">Welcome Aboard!</h1>
+                    <p class="text-slate-600 text-sm">Your account is ready to use</p>
+                </div>
+
+                <!-- Success Message -->
+                <div class="mb-8 p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <p class="text-sm text-slate-700 text-center">
+                        Your account has been successfully activated. You can now access all the features and start managing your finances with FinFlow.
+                    </p>
+                </div>
+
+                <!-- What's Next Section -->
+                <div class="mb-6 bg-slate-100 rounded-lg p-4 border border-slate-200">
+                    <p class="text-xs font-medium text-slate-700 mb-3">Next Steps:</p>
+                    <ul class="space-y-3 text-xs text-slate-600">
+                        <li class="flex items-center gap-3">
+                            <span class="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0 font-semibold">1</span>
+                            <span>Log in to your dashboard</span>
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <span class="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0 font-semibold">2</span>
+                            <span>Complete your profile</span>
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <span class="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center text-white text-xs flex-shrink-0 font-semibold">3</span>
+                            <span>Enable two-factor authentication</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Key Features Box -->
+                <div class="mb-6 bg-blue-50 rounded-lg p-4 border border-blue-200">
+                    <p class="text-xs font-medium text-slate-900 mb-3">Key Features You Can Access:</p>
+                    <ul class="space-y-2 text-xs text-slate-700">
+                        <li class="flex items-center gap-2">
+                            <i class="fas fa-wallet text-blue-600 w-4"></i>
+                            <span>Account management and tracking</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <i class="fas fa-exchange-alt text-blue-600 w-4"></i>
+                            <span>Transfers and payments</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <i class="fas fa-chart-line text-blue-600 w-4"></i>
+                            <span>Financial analytics and reports</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Action Button -->
+                <a href="{% url 'login' %}" class="btn btn-block bg-blue-600 hover:bg-blue-700 border-0 text-white font-semibold">
+                    <i class="fas fa-sign-in-alt"></i> Go to Dashboard
+                </a>
+
+                <!-- Help Section -->
+                <div class="mt-8 pt-8 border-t border-slate-200">
+                    <p class="text-center text-xs text-slate-600 mb-3">Need assistance?</p>
+                    <div class="space-y-2">
+                        <p class="text-center text-xs">
+                            <a href="#" class="text-blue-600 hover:text-blue-700 font-semibold">Read the getting started guide</a>
+                        </p>
+                        <p class="text-center text-xs">
+                            <a href="#" class="text-blue-600 hover:text-blue-700 font-semibold">Contact support</a>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Security Notice -->
+                <div class="mt-6 p-4 bg-slate-100 rounded-lg border border-slate-200">
+                    <p class="text-xs text-slate-600 text-center flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
+                        </svg>
+                        We use bank-level encryption to protect your data
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
