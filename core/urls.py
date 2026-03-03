@@ -17,6 +17,8 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 
+from payins.callbacks import mpesa_c2b_callback_url, mpesa_stk_callback_url
+
 from user_accounts.views import (users_list_view, users_add_edit_view, users_delete_view, users_toggle_status_view,)
 
 urlpatterns = [
@@ -28,6 +30,8 @@ urlpatterns = [
         include([
                 
             path("", include("dashboard.urls")),
+            path("", include("payins.urls")),
+            path("", include("payouts.urls")),
 
             # User management URLs
             path("users/",
@@ -43,7 +47,17 @@ urlpatterns = [
 
         ]),
     ),
-    path("api/v1/", include([
 
+    path("api/v1/", include([
+        path("callback/", include(
+            [
+                # PAYIN CALLBACKS
+                path("mpesa/stk/", mpesa_stk_callback_url, name="mpesa_stk_callback"),
+                path("mpesa/c2b/", mpesa_c2b_callback_url, name="mpesa_c2b_callback"), # offline handler
+
+                # PAYOUT CALLBACKS
+            ]
+        )),
+        path("", include("payins.api_urls")),
     ])),
 ]

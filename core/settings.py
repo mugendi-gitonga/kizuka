@@ -63,6 +63,11 @@ INSTALLED_APPS = [
 
     "user_accounts",
     "dashboard",
+    "payins",
+    "payouts",
+    "callbacks",
+    "pricing",
+    "wallet",
 ]
 
 MIDDLEWARE = [
@@ -278,3 +283,20 @@ LOGGING = {
         },
     },
 }
+
+# MPESA SETTINGS
+MPESA_BASE_API_URL = os.environ.get("MPESA_BASE_API_URL", "https://api.safaricom.co.ke")
+
+# MPESA C2B SETTINGS
+MPESA_SHORTCODE = os.environ.get("MPESA_SHORTCODE")
+MPESA_PASSKEY = os.environ.get("MPESA_PASSKEY")
+MPESA_CONSUMER_SECRET = os.environ.get("MPESA_CONSUMER_SECRET")
+MPESA_CONSUMER_KEY = os.environ.get("MPESA_CONSUMER_KEY")
+MPESA_PARTY_B = os.environ.get("MPESA_PARTY_B", MPESA_SHORTCODE)
+
+# MPESA B2C SETTINGS
+B2C_SHORTCODE = os.environ.get("MPESA_B2C_SHORTCODE")
+B2C_CONSUMER_KEY = os.environ.get("MPESA_B2C_CONSUMER_KEY")
+B2C_CONSUMER_SECRET = os.environ.get("MPESA_B2C_CONSUMER_SECRET")
+B2C_INITIATOR_NAME = os.environ.get("MPESA_B2C_INITIATOR_NAME")
+B2C_INITIATOR_PASSWORD = os.environ.get("MPESA_B2C_INITIATOR_PASSWORD")

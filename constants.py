@@ -1,3 +1,9 @@
+DEPOSIT_COUNTRIES_CHOICES = [
+    ("KE", "Kenya"),
+    ("UG", "Uganda"),
+    ("TZ", "Tanzania"),
+    ("ZM", "Zambia"),
+]
 
 COUNTRIES = (
     ('AF', 'Afghanistan'),

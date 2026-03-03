@@ -1,0 +1,214 @@
+{% extends 'base.html' %}
+
+{% block title %}Deposits - FinFlow Dashboard{% endblock %}
+{% block page_title %}Deposits{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header with Action Button -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h3 class="text-xl font-semibold text-slate-900">Deposit Transactions</h3>
+            <p class="text-sm text-slate-600 mt-1">View and manage all your deposits</p>
+        </div>
+        <button class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 w-full sm:w-auto justify-center">
+            <i class="fas fa-plus"></i>
+            <span>New Deposit</span>
+        </button>
+    </div>
+
+    <!-- Deposits Table -->
+    <div class="bg-white rounded-lg shadow border border-slate-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Date</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Reference</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Source Account</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Amount</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                    <!-- Sample Deposit Row 1 -->
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-6 py-4 text-sm text-slate-900">Mar 1, 2026</td>
+                        <td class="px-6 py-4 text-sm font-medium text-slate-900">DEP-2026-001</td>
+                        <td class="px-6 py-4 text-sm text-slate-600">Checking Account</td>
+                        <td class="px-6 py-4 text-sm font-semibold text-emerald-600">+$2,500.00</td>
+                        <td class="px-6 py-4 text-sm">
+                            <span class="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">Completed</span>
+                        </td>
+                        <td class="px-6 py-4 text-sm">
+                            <button onclick="openDepositModal(this)" class="text-blue-600 hover:text-blue-700 font-medium transition-colors" data-reference="DEP-2026-001" data-date="Mar 1, 2026" data-amount="$2,500.00" data-source="Checking Account" data-status="Completed" data-description="Salary deposit from employer">
+                                <i class="fas fa-eye"></i> View
+                            </button>
+                        </td>
+                    </tr>
+
+                    <!-- Sample Deposit Row 2 -->
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-6 py-4 text-sm text-slate-900">Feb 28, 2026</td>
+                        <td class="px-6 py-4 text-sm font-medium text-slate-900">DEP-2026-002</td>
+                        <td class="px-6 py-4 text-sm text-slate-600">Savings Account</td>
+                        <td class="px-6 py-4 text-sm font-semibold text-emerald-600">+$1,200.00</td>
+                        <td class="px-6 py-4 text-sm">
+                            <span class="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">Completed</span>
+                        </td>
+                        <td class="px-6 py-4 text-sm">
+                            <button onclick="openDepositModal(this)" class="text-blue-600 hover:text-blue-700 font-medium transition-colors" data-reference="DEP-2026-002" data-date="Feb 28, 2026" data-amount="$1,200.00" data-source="Savings Account" data-status="Completed" data-description="Transfer from external bank account">
+                                <i class="fas fa-eye"></i> View
+                            </button>
+                        </td>
+                    </tr>
+
+                    <!-- Sample Deposit Row 3 -->
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-6 py-4 text-sm text-slate-900">Feb 25, 2026</td>
+                        <td class="px-6 py-4 text-sm font-medium text-slate-900">DEP-2026-003</td>
+                        <td class="px-6 py-4 text-sm text-slate-600">Money Market</td>
+                        <td class="px-6 py-4 text-sm font-semibold text-emerald-600">+$5,000.00</td>
+                        <td class="px-6 py-4 text-sm">
+                            <span class="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">Pending</span>
+                        </td>
+                        <td class="px-6 py-4 text-sm">
+                            <button onclick="openDepositModal(this)" class="text-blue-600 hover:text-blue-700 font-medium transition-colors" data-reference="DEP-2026-003" data-date="Feb 25, 2026" data-amount="$5,000.00" data-source="Money Market" data-status="Pending" data-description="Investment fund deposit - Processing">
+                                <i class="fas fa-eye"></i> View
+                            </button>
+                        </td>
+                    </tr>
+
+                    <!-- Sample Deposit Row 4 -->
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-6 py-4 text-sm text-slate-900">Feb 20, 2026</td>
+                        <td class="px-6 py-4 text-sm font-medium text-slate-900">DEP-2026-004</td>
+                        <td class="px-6 py-4 text-sm text-slate-600">Business Account</td>
+                        <td class="px-6 py-4 text-sm font-semibold text-emerald-600">+$3,750.00</td>
+                        <td class="px-6 py-4 text-sm">
+                            <span class="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">Completed</span>
+                        </td>
+                        <td class="px-6 py-4 text-sm">
+                            <button onclick="openDepositModal(this)" class="text-blue-600 hover:text-blue-700 font-medium transition-colors" data-reference="DEP-2026-004" data-date="Feb 20, 2026" data-amount="$3,750.00" data-source="Business Account" data-status="Completed" data-description="Client payment received">
+                                <i class="fas fa-eye"></i> View
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Empty State (if needed) -->
+        <!-- <div class="p-8 text-center">
+            <i class="fas fa-inbox text-4xl text-slate-300 mb-3"></i>
+            <p class="text-slate-600 font-medium">No deposits found</p>
+            <p class="text-sm text-slate-500">Start by creating your first deposit</p>
+        </div> -->
+    </div>
+</div>
+
+<!-- Deposit Details Modal -->
+<dialog id="depositModal" class="modal">
+    <div class="modal-box w-full max-w-md">
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between mb-4 pb-4 border-b border-slate-200">
+            <h3 class="text-lg font-bold text-slate-900">Deposit Details</h3>
+            <form method="dialog">
+                <button class="btn btn-sm btn-circle btn-ghost text-slate-500 hover:text-slate-900">
+                    <i class="fas fa-times"></i>
+                </button>
+            </form>
+        </div>
+
+        <!-- Modal Content -->
+        <div class="space-y-5">
+            <!-- Reference -->
+            <div>
+                <p class="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">Reference Number</p>
+                <p id="modalReference" class="text-sm font-medium text-slate-900">-</p>
+            </div>
+
+            <!-- Transaction Date -->
+            <div>
+                <p class="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">Transaction Date</p>
+                <p id="modalDate" class="text-sm font-medium text-slate-900">-</p>
+            </div>
+
+            <!-- Source Account -->
+            <div>
+                <p class="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">Source Account</p>
+                <p id="modalSource" class="text-sm font-medium text-slate-900">-</p>
+            </div>
+
+            <!-- Amount -->
+            <div>
+                <p class="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">Amount</p>
+                <p id="modalAmount" class="text-lg font-bold text-emerald-600">-</p>
+            </div>
+
+            <!-- Status -->
+            <div>
+                <p class="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">Status</p>
+                <div id="modalStatus"></div>
+            </div>
+
+            <!-- Description -->
+            <div>
+                <p class="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">Description</p>
+                <p id="modalDescription" class="text-sm text-slate-600">-</p>
+            </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="modal-action mt-6 flex gap-3">
+            <button onclick="downloadReceipt()" class="btn btn-outline btn-sm flex-1">
+                <i class="fas fa-download"></i>
+                Download
+            </button>
+            <form method="dialog" class="flex-1">
+                <button class="btn btn-primary btn-sm w-full">Close</button>
+            </form>
+        </div>
+    </div>
+</dialog>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function openDepositModal(button) {
+        const modal = document.getElementById('depositModal');
+        const reference = button.getAttribute('data-reference');
+        const date = button.getAttribute('data-date');
+        const amount = button.getAttribute('data-amount');
+        const source = button.getAttribute('data-source');
+        const status = button.getAttribute('data-status');
+        const description = button.getAttribute('data-description');
+
+        // Populate modal with data
+        document.getElementById('modalReference').textContent = reference;
+        document.getElementById('modalDate').textContent = date;
+        document.getElementById('modalAmount').textContent = amount;
+        document.getElementById('modalSource').textContent = source;
+        document.getElementById('modalDescription').textContent = description;
+
+        // Set status badge
+        const statusElement = document.getElementById('modalStatus');
+        if (status === 'Completed') {
+            statusElement.innerHTML = '<span class="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">Completed</span>';
+        } else if (status === 'Pending') {
+            statusElement.innerHTML = '<span class="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">Pending</span>';
+        }
+
+        // Open modal
+        modal.showModal();
+    }
+
+    function downloadReceipt() {
+        const reference = document.getElementById('modalReference').textContent;
+        alert(`Downloading receipt for ${reference}...`);
+        // Add actual download logic here
+    }
+</script>
+{% endblock %}
