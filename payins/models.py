@@ -77,8 +77,8 @@ class DepositRequest(AliasModel):
 
     def complete(self):
         business = self.business
-        wallet = Wallet.objects.select_for_update().get(business=business, currency=self.currency)
         with db_transaction.atomic():
+            wallet = Wallet.objects.select_for_update().get(business=business, currency=self.currency)
             trans = wallet.credit(self.amount, reference=f"DEP-{self.alias}", trans_type="DEPOSIT", description=f"Deposit of {self.amount} for INV-{self.alias}")
             wallet.debit(self.charge, reference=f"FEE-{self.alias}", trans_type="FEE", description=f"Charge of {self.charge} for deposit INV-{self.alias}")
             if self.taxes:
