@@ -63,7 +63,7 @@ def decode_id(record_hash):
 
 
 def encode_jwt(payload, account_id, reference, expiry=settings.JWT_STANDARD_EXPIRY):
-    payload["iss"] = "Bank Pa"
+    payload["iss"] = "KizukaApp"
     payload["aud"] = [reference, ]
     payload["iat"] = datetime.datetime.now()
     payload["exp"] = datetime.datetime.now()+datetime.timedelta(seconds=expiry)

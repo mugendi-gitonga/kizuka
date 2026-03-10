@@ -21,7 +21,7 @@ from user_accounts.utils import hash_token, verify_token_hash
 from .forms import LoginForm, SignUpForm, AddTeamMemberForm, ForgotPasswordForm, ResetPasswordForm, InviteUserForm
 
 from constants import COUNTRIES
-from utils import decode_jwt, encode_jwt, get_client_ip
+from utils import decode_id, decode_jwt, encode_jwt, get_client_ip
 
 from user_accounts.models import Business, BusinessTeamMember, UserProfile, PasswordResetLog, InviteUserLog
 from user_accounts.tasks import send_existing_invitation_email, send_password_reset_email
@@ -288,9 +288,10 @@ def invite_user_view(request, token):
 
         user_id = token_data.get("accountID")
         business_id = token_data.get("businessID")
+        business_id = decode_id(business_id)
         user = User.objects.get(id=user_id)
         user_profile = UserProfile.objects.get(user=user)
-        business = Business.objects.get(alias_id=business_id)
+        business = Business.objects.get(id=business_id)
 
         # Check if invite has already been used
         if user_profile.invite_used:
@@ -376,7 +377,6 @@ def invite_user_view(request, token):
             request,
             "auth/invite_user.html",
             {
-                "error": "Invalid or expired invite link.",
                 "token": token,
                 "form": form,
                 "countries": COUNTRIES,

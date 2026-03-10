@@ -76,7 +76,7 @@
                             <p class="font-medium">{{ error }}</p>
                         </div>
                     </div>
-                    {% endif %}
+                    {% else %}
 
                     {% if form.non_field_errors %}
                     <div class="p-4 bg-red-50 border border-red-300 rounded-lg mb-6 flex gap-3">
@@ -259,6 +259,9 @@
                             Your connection is secure and encrypted
                         </p>
                     </div>
+
+                    {% endif %} <!-- End of error check -->
+                    
                 </div>
             </div>
         </div>

@@ -370,7 +370,7 @@ class AddTeamMemberForm(forms.Form):
         user = user_profile.user
         token_data = {
             "accountID": user.id,
-            "businessID": business.alias_id,
+            "businessID": business.alias,
             "reference": "invite_user",
             "expires_in": (datetime.datetime.now() + datetime.timedelta(days=7)).timestamp()
         }
