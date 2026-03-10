@@ -45,7 +45,7 @@ def send_zoho_message_api(to_email, subject, content):
         }
 
         payload = {
-            "fromAddress": settings.EMAIL_HOST_USER,
+            "fromAddress": f"Kizuka Support <{settings.EMAIL_HOST_USER}>",
             "toAddress": to_email,
             "subject": subject,
             "content": content,
