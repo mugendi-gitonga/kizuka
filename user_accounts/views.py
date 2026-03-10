@@ -372,9 +372,19 @@ def invite_user_view(request, token):
                 logger.info(f"User {user_id} successfully activated invite for {business.name} from IP {client_ip}")
                 return redirect('invite_user_done')
 
+        return render(
+            request,
+            "auth/invite_user.html",
+            {
+                "error": "Invalid or expired invite link.",
+                "token": token,
+                "form": form,
+                "countries": COUNTRIES,
+            },
+        )
     except Exception as e:
         logger.error(f"Invite activation failed: {str(e)} from IP {client_ip}")
-        return render(request, 'auth/invite_user.html', {"error": "Invalid or expired invite link.", "token": token})
+        return render(request, 'auth/invite_user.html', {"error": "Invalid or expired invite link.", "token": token, "form": form, "countries": COUNTRIES})
 
     return render(
         request,
