@@ -15,14 +15,13 @@ from payouts.models import PayoutRequest
 from payouts.tables import PayoutRequestTable, PayoutRequestFilter
 from payouts.tasks import process_payout_request
 from pricing.models import BusinessPricingPlan, CountryTax, PAYOUT_PROVIDER_CHOICES
-from user_accounts.decorators import business_admin_required
+from user_accounts.decorators import business_admin_required, require_business_role
 from wallet.models import Wallet
 
 
 @method_decorator(login_required, name="dispatch")
 @method_decorator(
-    permission_required("payouts.view_payoutrequest", raise_exception=True),
-    name="dispatch",
+    require_business_role(allowed_roles=["admin", "staff"]), name="dispatch"
 )
 class PayoutListView(ExportMixin, SingleTableMixin, FilterView):
     model = PayoutRequest
@@ -51,7 +50,7 @@ class PayoutListView(ExportMixin, SingleTableMixin, FilterView):
 
 
 @login_required
-@business_admin_required
+@require_business_role(allowed_roles=["admin"])
 @require_http_methods(["POST"])
 def create_payout_request(request):
     """Create a new payout request from form submission"""

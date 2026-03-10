@@ -14,14 +14,14 @@ from django_filters.views import FilterView
 from payins.models import DepositRequest
 from payins.tables import DepositRequestTable, DepositRequestFilter
 from payins.tasks import send_deposit_request_to_provider
+from user_accounts.decorators import require_business_role
 
 # Create your views here.
 
 
 @method_decorator(login_required, name="dispatch")
 @method_decorator(
-    permission_required("payins.view_depositrequest", raise_exception=True),
-    name="dispatch",
+    require_business_role(allowed_roles=["admin", "staff"]), name="dispatch"
 )
 class DepositListView(ExportMixin, SingleTableMixin, FilterView):
     model = DepositRequest
@@ -39,6 +39,7 @@ class DepositListView(ExportMixin, SingleTableMixin, FilterView):
 
 
 @login_required
+@require_business_role(allowed_roles=["admin", "staff"])
 @require_http_methods(["POST"])
 def create_deposit_request(request):
     """Create a new deposit request from form submission"""

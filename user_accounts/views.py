@@ -16,7 +16,7 @@ from django.contrib.auth.decorators import login_required, permission_required
 from django.core.paginator import Paginator
 
 from callbacks.models import BusinessCallback, CallbackLog, WhitelistedIP
-from user_accounts.decorators import business_admin_required
+from user_accounts.decorators import business_admin_required, require_business_role
 from user_accounts.utils import hash_token, verify_token_hash
 from .forms import LoginForm, SignUpForm, AddTeamMemberForm, ForgotPasswordForm, ResetPasswordForm, InviteUserForm
 
@@ -983,10 +983,7 @@ def integrations_view(request):
 
 
 @login_required
-@method_decorator(
-    permission_required("callbacks.view_businesscallback", raise_exception=True),
-    name="dispatch",
-)
+@require_business_role(allowed_roles=["admin", "staff"], name="dispatch")
 def callbacks_list_view(request):
     """Get callbacks list (AJAX)"""
     try:
@@ -1114,10 +1111,7 @@ def callbacks_delete_view(request, callback_id):
 
 
 @login_required
-@method_decorator(
-    permission_required("callbacks.view_callbacklog", raise_exception=True),
-    name="dispatch",
-)
+@require_business_role(allowed_roles=["admin", "staff"], name="dispatch")
 def callback_logs_view(request, callback_id):
     """Get callback logs (AJAX)"""
     try:
@@ -1174,10 +1168,7 @@ def callback_logs_view(request, callback_id):
 
 
 @login_required
-@method_decorator(
-    permission_required("callbacks.view_callbacklog", raise_exception=True),
-    name="dispatch",
-)
+@require_business_role(allowed_roles=["admin", "staff"], name="dispatch")
 def callback_log_detail_view(request, log_id):
     """Get detailed callback log (AJAX)"""
     try:
