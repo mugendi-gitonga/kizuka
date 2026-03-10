@@ -52,7 +52,7 @@ mark_as_failed.short_description = "Mark selected deposit requests as failed"
 
 @admin.register(DepositRequest)
 class DepositRequestAdmin(admin.ModelAdmin):
-    list_display = ("alias_id", "amount", "paid_amount", "net_amount", "status", "created_at")
+    list_display = ("alias_id", "amount", "paid_amount", "net_amount", "status", "wallet_credited", "created_at")
     list_filter = ("status", "provider", "created_at")
     search_fields = ("reference", "narration", "phone_number", "alias_id", "provider_reference")
     actions = [mark_as_completed]
