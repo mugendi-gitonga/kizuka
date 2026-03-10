@@ -60,7 +60,7 @@ class MpesaC2BProcessor():
                 f"{settings.MPESA_SHORTCODE}{settings.MPESA_PASSKEY}{timestamp}".encode("utf-8")
             ).decode("utf-8")
 
-            token = self.get_mpesa_token(settings.MPESA_CONSUMER_KEY, settings.MPESA_CONSUMER_SECRET)
+            token = self.get_mpesa_token()
             headers = {"Authorization": f"Bearer {token}"}
 
             payload = {
@@ -68,7 +68,7 @@ class MpesaC2BProcessor():
                 "Password": password,
                 "Timestamp": timestamp,
                 "TransactionType": settings.MPESA_TRANS_TYPE,
-                "Amount": amount,
+                "Amount": str(amount),
                 "PartyA": phone_number,
                 "PartyB": (
                     settings.MPESA_PARTY_B
@@ -76,13 +76,14 @@ class MpesaC2BProcessor():
                     else settings.MPESA_SHORTCODE
                 ),
                 "PhoneNumber": phone_number,
-                "CallBackURL": f'{settings.APP_URL}/payment/stkpush/confirmation/',
+                "CallBackURL": f'{settings.APP_URL}/api/v1/callback/mpesa/stk/',
                 "AccountReference": reference,
                 "TransactionDesc": description if description else f"for {reference}",
             }
             # return payload
             url = f"{settings.MPESA_BASE_API_URL}/mpesa/stkpush/v1/processrequest"
             resp = requests.post(url, json=payload, headers=headers)
+            print(resp.text)
             json_resp = resp.json()
             return resp.status_code, json_resp
         except requests.exceptions.ReadTimeout as ex:
@@ -114,3 +115,14 @@ class MpesaC2BProcessor():
         json_resp = resp.json()
         print(json_resp)
         return json_resp
+
+    def validate_phone_number(self, phone_number):
+        """Ensure phone number is in correct format (e.g. 2547XXXXXXXX)"""
+        if phone_number.startswith("0"):
+            return "254" + phone_number[1:]
+        elif phone_number.startswith("7") and len(phone_number) == 9:
+            return "254" + phone_number
+        elif phone_number.startswith("254") and len(phone_number) == 12:
+            return phone_number
+        else:
+            raise ValueError("Invalid phone number format")

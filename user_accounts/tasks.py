@@ -40,7 +40,6 @@ def send_invitation_email(email, first_name, business_name):
         email = EmailMultiAlternatives(subject, txt_template, to=[email])
         email.attach_alternative(html_template, "text/html")
         email.send()
-        print(invite_link)
         logger.info(f"Invitation email sent to {email} for joining {business_name}")
     except Exception as e:
         logger.error(f"Failed to send invitation email to {email}: {str(e)}")

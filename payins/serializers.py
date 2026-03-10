@@ -17,7 +17,7 @@ class DepositInitSerializer(serializers.ModelSerializer):
         ]
 
     def validate_amount(self, value):
-        if value < 10:
+        if value < 10 and self.initial_data.get("currency", "KES") == "KES":
             raise serializers.ValidationError("Amount must be at least 10.")
         return value
 
@@ -53,4 +53,11 @@ class DepositSerializer(serializers.ModelSerializer):
     class Meta:
         model = DepositRequest
         fields = "__all__"
-        exclude = ["id","business","init_response", "stk_response", "callback_response"]
+        exclude = [
+            "id",
+            "business",
+            "tracking_id",
+            "init_response",
+            "stk_response",
+            "callback_response",
+        ]

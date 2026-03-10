@@ -19,7 +19,8 @@ from django.urls import path, include
 
 from payins.callbacks import mpesa_c2b_callback_url, mpesa_stk_callback_url
 
-from user_accounts.views import (users_list_view, users_add_edit_view, users_delete_view, users_toggle_status_view,)
+from payouts.callbacks import mpesa_payout_callback_url
+from user_accounts.views import (callback_log_detail_view, callback_logs_view, callbacks_add_edit_view, callbacks_delete_view, callbacks_list_view, integrations_view, regenerate_api_key_view, users_list_view, users_add_edit_view, users_delete_view, users_toggle_status_view, whitelist_add_view, whitelist_delete_view, whitelist_ips_view,)
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -45,6 +46,26 @@ urlpatterns = [
                 ),
             ),
 
+            # Integrations URLs
+            path("integrations/",
+                include(
+                    [
+                        path("", integrations_view, name="integrations"),
+                        path("callbacks/", callbacks_list_view, name="callbacks_list"),
+                        path("callbacks/add/", callbacks_add_edit_view, name="callbacks_add"),
+                        path("callbacks/<int:callback_id>/", callbacks_add_edit_view, name="callbacks_edit"),
+                        path("callbacks/<int:callback_id>/delete/", callbacks_delete_view, name="callbacks_delete"),
+                        # path("callbacks/<int:callback_id>/test/", callbacks_test_view, name="callbacks_test"),
+                        path("callbacks/<int:callback_id>/logs/", callback_logs_view, name="callback_logs"),
+                        path("callbacks/logs/<int:log_id>/", callback_log_detail_view, name="callback_log_detail"),
+                        path("api-key/regenerate/", regenerate_api_key_view, name="regenerate_api_key"),
+                        path("whitelist/", whitelist_ips_view, name="whitelist_ips"),
+                        path("whitelist/add/", whitelist_add_view, name="whitelist_add"),
+                        path("whitelist/<str:whitelist_id>/delete/", whitelist_delete_view, name="whitelist_delete"),
+                    ]
+                ),
+            ),
+
         ]),
     ),
 
@@ -56,8 +77,10 @@ urlpatterns = [
                 path("mpesa/c2b/", mpesa_c2b_callback_url, name="mpesa_c2b_callback"), # offline handler
 
                 # PAYOUT CALLBACKS
+                path("mpesa/b2c/", mpesa_payout_callback_url, name="mpesa_b2c_callback"), # online handler
             ]
         )),
         path("", include("payins.api_urls")),
+        path("", include("payouts.api_urls")),
     ])),
 ]

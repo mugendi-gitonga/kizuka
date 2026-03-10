@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
     "django_countries",
+    "django_tables2",
 
     "user_accounts",
     "dashboard",
@@ -293,6 +294,7 @@ MPESA_PASSKEY = os.environ.get("MPESA_PASSKEY")
 MPESA_CONSUMER_SECRET = os.environ.get("MPESA_CONSUMER_SECRET")
 MPESA_CONSUMER_KEY = os.environ.get("MPESA_CONSUMER_KEY")
 MPESA_PARTY_B = os.environ.get("MPESA_PARTY_B", MPESA_SHORTCODE)
+MPESA_TRANS_TYPE= os.environ.get("MPESA_TRANS_TYPE", "CustomerPayBillOnline")
 
 # MPESA B2C SETTINGS
 B2C_SHORTCODE = os.environ.get("MPESA_B2C_SHORTCODE")

@@ -13,6 +13,8 @@ from user_accounts.views import (
     verify_email_view,
     change_account_view,
     resend_invite_view,
+    business_api_key_view,
+    regenerate_api_key_view,
 )
 
 urlpatterns = [
@@ -47,4 +49,6 @@ urlpatterns = [
     ),
     path("verify-email/<str:token>/", verify_email_view, name="verify_email"),
     path("change-account/", change_account_view, name="change_account"),
+    path('api-key/', business_api_key_view, name='business_api_key'),
+    path('api-key/regenerate/', regenerate_api_key_view, name='regenerate_api_key'),
 ]

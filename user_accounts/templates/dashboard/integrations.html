@@ -1,0 +1,848 @@
+{% extends 'base.html' %}
+
+{% block title %}Integrations - FinFlow Dashboard{% endblock %}
+{% block page_title %}Integrations{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div>
+        <h3 class="text-xl font-semibold text-slate-900">Integrations</h3>
+        <p class="text-sm text-slate-600 mt-1">Manage API keys, callbacks, and IP whitelisting</p>
+    </div>
+
+    <!-- Tabs -->
+    <div class="bg-white rounded-lg shadow border border-slate-200">
+        <div class="flex border-b border-slate-200">
+            <button onclick="switchTab('api-key')" class="tab-btn flex-1 px-6 py-3 text-center font-medium text-slate-600 hover:text-slate-900 border-b-2 border-transparent transition-colors active-tab" data-tab="api-key">
+                <i class="fas fa-key mr-2"></i> API Key
+            </button>
+            <button onclick="switchTab('callbacks')" class="tab-btn flex-1 px-6 py-3 text-center font-medium text-slate-600 hover:text-slate-900 border-b-2 border-transparent transition-colors" data-tab="callbacks">
+                <i class="fas fa-webhook mr-2"></i> Callbacks
+            </button>
+            <button onclick="switchTab('whitelist')" class="tab-btn flex-1 px-6 py-3 text-center font-medium text-slate-600 hover:text-slate-900 border-b-2 border-transparent transition-colors" data-tab="whitelist">
+                <i class="fas fa-shield-alt mr-2"></i> IP Whitelist
+            </button>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="p-6">
+            <!-- API Key Tab -->
+            <div id="api-key-tab" class="tab-content block space-y-4">
+                <div class="space-y-4">
+                    <!-- Business Name -->
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Business Name</label>
+                        <div class="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 font-medium">
+                            {{ business.name }}
+                        </div>
+                    </div>
+
+                    <!-- API Key -->
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">API Key</label>
+                        {% if api_key %}
+                            <div class="flex gap-2">
+                                <input 
+                                    type="password" 
+                                    id="apiKeyInput" 
+                                    value="{{ api_key }}" 
+                                    class="flex-1 px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 font-mono text-sm"
+                                    readonly
+                                />
+                                <button 
+                                    onclick="toggleApiKeyVisibility()" 
+                                    class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 transition-colors font-medium"
+                                >
+                                    <i class="fas fa-eye"></i> Show
+                                </button>
+                                <button 
+                                    onclick="copyApiKey()" 
+                                    class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                                >
+                                    <i class="fas fa-copy"></i> Copy
+                                </button>
+                            </div>
+                            <p class="text-xs text-slate-500 mt-2">Keep this key secure. Do not share it with anyone.</p>
+                        {% else %}
+                            <div class="px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm flex items-center gap-2">
+                                <i class="fas fa-exclamation-circle"></i>
+                                <span>Unable to decrypt API key. Please regenerate a new one.</span>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Last Updated -->
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-2">Last Updated</label>
+                        <div class="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-600 text-sm">
+                            {{ business.updated_at|date:"M d, Y H:i" }}
+                        </div>
+                    </div>
+
+                    <!-- Warning -->
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex gap-3">
+                        <i class="fas fa-exclamation-triangle text-yellow-600 text-lg flex-shrink-0 mt-0.5"></i>
+                        <div>
+                            <p class="font-medium text-yellow-900">Regenerating your API key</p>
+                            <p class="text-sm text-yellow-700">All applications using the old key will stop working immediately. Make sure to update your applications first.</p>
+                        </div>
+                    </div>
+
+                    <!-- Regenerate Button -->
+                    <div class="pt-4 border-t border-slate-200">
+                        <button 
+                            onclick="confirmRegenerateKey()" 
+                            class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium inline-flex items-center gap-2"
+                        >
+                            <i class="fas fa-redo"></i>
+                            Regenerate API Key
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Usage Example -->
+                <div class="pt-6 border-t border-slate-200">
+                    <h4 class="text-lg font-semibold text-slate-900 mb-4">How to Use</h4>
+                    <div class="bg-slate-900 rounded-lg p-4 text-slate-100 font-mono text-sm overflow-x-auto">
+                        <pre>curl -X POST https://api.finflow.com/deposits \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phone_number": "254712345678",
+    "amount": 1000,
+    "currency": "KES"
+  }'</pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Callbacks Tab -->
+            <div id="callbacks-tab" class="tab-content hidden space-y-4">
+                <div class="flex justify-end mb-4">
+                    <button 
+                        onclick="openCallbackModal()" 
+                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium inline-flex items-center gap-2"
+                    >
+                        <i class="fas fa-plus"></i> Add Callback
+                    </button>
+                </div>
+
+                <!-- Callbacks List -->
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-slate-50 border-b border-slate-200">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Event Type</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase">URL</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Status</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Created</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="callbacksTableBody" class="divide-y divide-slate-200">
+                            <tr>
+                                <td colspan="5" class="px-6 py-8 text-center text-slate-500">
+                                    <i class="fas fa-spinner fa-spin mr-2"></i> Loading...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- IP Whitelist Tab -->
+            <div id="whitelist-tab" class="tab-content hidden space-y-4">
+                <div class="flex justify-end mb-4">
+                    <button 
+                        onclick="openWhitelistModal()" 
+                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium inline-flex items-center gap-2"
+                    >
+                        <i class="fas fa-plus"></i> Add IP Address
+                    </button>
+                </div>
+
+                <!-- Whitelisted IPs List -->
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-slate-50 border-b border-slate-200">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase">IP Address</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Description</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Added</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="whitelistTableBody" class="divide-y divide-slate-200">
+                            <tr>
+                                <td colspan="4" class="px-6 py-8 text-center text-slate-500">
+                                    <i class="fas fa-spinner fa-spin mr-2"></i> Loading...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Callback Modal - FIXED -->
+<dialog id="callbackModal" class="modal">
+    <div class="modal-box bg-white w-full max-w-md">
+        <button type="button" onclick="document.getElementById('callbackModal').close()" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">
+            <i class="fas fa-times"></i>
+        </button>
+        
+        <h3 id="callbackModalTitle" class="text-lg font-bold text-slate-900 mb-4">Add Callback</h3>
+
+        <form id="callbackForm" class="space-y-4" onsubmit="saveCallback(event)">
+            <input type="hidden" id="callbackId" value="">
+            
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-2">Event Type</label>
+                <select id="eventType" class="select select-bordered w-full bg-white text-slate-900 border-slate-300" required>
+                    <option value="">Select event type</option>
+                    <option value="PAYIN">Payment In (PAYIN)</option>
+                    <option value="PAYOUT">Payment Out (PAYOUT)</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-2">Callback URL</label>
+                <input 
+                    type="url" 
+                    id="callbackUrl" 
+                    placeholder="https://example.com/webhook" 
+                    class="input input-bordered w-full bg-white text-slate-900 border-slate-300"
+                    required
+                />
+            </div>
+
+            <div class="flex gap-3 pt-4">
+                <button type="button" onclick="document.getElementById('callbackModal').close()" class="flex-1 btn btn-outline">Cancel</button>
+                <button type="submit" class="flex-1 btn btn-primary bg-blue-600 border-blue-600">Save</button>
+            </div>
+        </form>
+    </div>
+    <form method="dialog" class="modal-backdrop" onclick="document.getElementById('callbackModal').close()"></form>
+</dialog>
+
+<!-- Callback Logs Modal - FIXED -->
+<dialog id="callbackLogsModal" class="modal">
+    <div class="modal-box bg-white w-full max-w-2xl">
+        <button type="button" onclick="document.getElementById('callbackLogsModal').close()" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">
+            <i class="fas fa-times"></i>
+        </button>
+        
+        <h3 class="text-lg font-bold text-slate-900 mb-4">Callback Logs</h3>
+
+        <div class="space-y-4">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-slate-50 border-b border-slate-200">
+                        <tr>
+                            <th class="px-4 py-2 text-left text-xs font-semibold text-slate-600">Status</th>
+                            <th class="px-4 py-2 text-left text-xs font-semibold text-slate-600">Response</th>
+                            <th class="px-4 py-2 text-left text-xs font-semibold text-slate-600">Time</th>
+                            <th class="px-4 py-2 text-left text-xs font-semibold text-slate-600">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="callbackLogsTableBody" class="divide-y divide-slate-200">
+                        <tr>
+                            <td colspan="4" class="px-4 py-8 text-center text-slate-500">
+                                <i class="fas fa-spinner fa-spin mr-2"></i> Loading...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div id="logsPagination" class="flex justify-center gap-2"></div>
+        </div>
+    </div>
+    <form method="dialog" class="modal-backdrop" onclick="document.getElementById('callbackLogsModal').close()"></form>
+</dialog>
+
+<!-- Log Detail Modal - FIXED -->
+<dialog id="logDetailModal" class="modal">
+    <div class="modal-box bg-white w-full max-w-2xl max-h-96 overflow-y-auto">
+        <button type="button" onclick="document.getElementById('logDetailModal').close()" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">
+            <i class="fas fa-times"></i>
+        </button>
+        
+        <h3 class="text-lg font-bold text-slate-900 mb-4">Log Details</h3>
+
+        <div class="space-y-4">
+            <!-- Status -->
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-2">Status Code</label>
+                <div id="logStatusCode" class="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 font-mono"></div>
+            </div>
+
+            <!-- Payload -->
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-2">Payload</label>
+                <div id="logPayload" class="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 font-mono text-sm overflow-x-auto max-h-40 whitespace-pre-wrap break-words"></div>
+            </div>
+
+            <!-- Response -->
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-2">Response Body</label>
+                <div id="logResponse" class="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 font-mono text-sm overflow-x-auto max-h-40 whitespace-pre-wrap break-words"></div>
+            </div>
+
+            <button type="button" onclick="document.getElementById('logDetailModal').close()" class="w-full btn btn-primary mt-4">Close</button>
+        </div>
+    </div>
+    <form method="dialog" class="modal-backdrop" onclick="document.getElementById('logDetailModal').close()"></form>
+</dialog>
+
+<!-- Regenerate API Key Modal - FIXED -->
+<dialog id="regenerateModal" class="modal">
+    <div class="modal-box bg-white w-full max-w-md">
+        <button type="button" onclick="document.getElementById('regenerateModal').close()" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">
+            <i class="fas fa-times"></i>
+        </button>
+        
+        <h3 class="text-lg font-bold text-slate-900 mb-4">Regenerate API Key?</h3>
+
+        <div class="space-y-4 mb-6">
+            <p class="text-slate-600">Are you sure you want to regenerate your API key?</p>
+            <div class="bg-red-50 border border-red-200 rounded-lg p-3 flex gap-3">
+                <i class="fas fa-warning text-red-600 text-lg flex-shrink-0"></i>
+                <div>
+                    <p class="font-medium text-red-900 text-sm">All applications using the old key will stop working immediately.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex gap-3">
+            <button type="button" onclick="document.getElementById('regenerateModal').close()" class="flex-1 btn btn-outline">Cancel</button>
+            <button onclick="regenerateKey()" class="flex-1 btn btn-error text-white">
+                <i class="fas fa-redo"></i> Regenerate
+            </button>
+        </div>
+    </div>
+    <form method="dialog" class="modal-backdrop" onclick="document.getElementById('regenerateModal').close()"></form>
+</dialog>
+
+<!-- Whitelist Modal (if needed) -->
+<dialog id="whitelistModal" class="modal">
+    <div class="modal-box bg-white w-full max-w-md">
+        <button type="button" onclick="document.getElementById('whitelistModal').close()" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">
+            <i class="fas fa-times"></i>
+        </button>
+        
+        <h3 class="text-lg font-bold text-slate-900 mb-4">Add IP Address</h3>
+
+        <form id="whitelistForm" class="space-y-4" onsubmit="saveWhitelist(event)">
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-2">IP Address</label>
+                <input 
+                    type="text" 
+                    id="ipAddress" 
+                    placeholder="192.168.1.1" 
+                    class="input input-bordered w-full bg-white text-slate-900 border-slate-300"
+                    required
+                />
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-2">Description (Optional)</label>
+                <input 
+                    type="text" 
+                    id="ipDescription" 
+                    placeholder="e.g., Office network" 
+                    class="input input-bordered w-full bg-white text-slate-900 border-slate-300"
+                />
+            </div>
+
+            <div class="flex gap-3 pt-4">
+                <button type="button" onclick="document.getElementById('whitelistModal').close()" class="flex-1 btn btn-outline">Cancel</button>
+                <button type="submit" class="flex-1 btn btn-primary bg-blue-600 border-blue-600">Add</button>
+            </div>
+        </form>
+    </div>
+    <form method="dialog" class="modal-backdrop" onclick="document.getElementById('whitelistModal').close()"></form>
+</dialog>
+
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .tab-content {
+        display: none;
+    }
+    
+    .tab-content.block {
+        display: block;
+    }
+    
+    .tab-btn.active-tab {
+        color: #2563eb;
+        border-bottom-color: #2563eb;
+    }
+
+    dialog.modal {
+        background-color: rgba(0, 0, 0, 0.3);
+    }
+
+    .modal-box {
+        background-color: #ffffff;
+        color: #1f2937;
+    }
+
+    .modal-box h3 {
+        color: #111827;
+    }
+
+    .modal-box label {
+        color: #374151;
+    }
+
+    .select, .input {
+        background-color: #ffffff !important;
+        color: #111827 !important;
+        border-color: #d1d5db !important;
+    }
+
+    .select:focus, .input:focus {
+        border-color: #3b82f6 !important;
+        outline: none;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Toast notification function
+    function showToast(message, type = 'success', duration = 3000) {
+        const bgColor = {
+            'success': '#10b981',
+            'error': '#ef4444',
+            'info': '#3b82f6',
+            'warning': '#f59e0b'
+        }[type] || '#10b981';
+        
+        Toastify({
+            text: message,
+            duration: duration,
+            gravity: "top",
+            position: "right",
+            backgroundColor: bgColor,
+            stopOnFocus: true,
+            className: "rounded-lg font-medium"
+        }).showToast();
+    }
+
+    let isApiKeyVisible = false;
+    let currentCallbackId = null;
+    let currentLogsPage = 1;
+    const activeTab = '{{ active_tab }}' || 'api-key';
+
+    document.addEventListener('DOMContentLoaded', function() {
+        switchTab(activeTab);
+    });
+
+    function switchTab(tabName) {
+        document.querySelectorAll('.tab-content').forEach(el => {
+            el.classList.remove('block');
+            el.classList.add('hidden');
+        });
+        
+        document.querySelectorAll('.tab-btn').forEach(el => {
+            el.classList.remove('text-blue-600', 'border-blue-600', 'active-tab');
+            el.classList.add('text-slate-600', 'border-transparent');
+        });
+        
+        const tabEl = document.getElementById(`${tabName}-tab`);
+        if (tabEl) {
+            tabEl.classList.add('block');
+            tabEl.classList.remove('hidden');
+        }
+        
+        const btnEl = document.querySelector(`[data-tab="${tabName}"]`);
+        if (btnEl) {
+            btnEl.classList.add('text-blue-600', 'border-blue-600', 'active-tab');
+            btnEl.classList.remove('text-slate-600', 'border-transparent');
+        }
+        
+        if (tabName === 'callbacks') {
+            loadCallbacks();
+        } else if (tabName === 'whitelist') {
+            loadWhitelistIPs();
+        }
+    }
+
+    // API Key Functions
+    function toggleApiKeyVisibility() {
+        const input = document.getElementById('apiKeyInput');
+        const button = event.target.closest('button');
+        
+        if (isApiKeyVisible) {
+            input.type = 'password';
+            button.innerHTML = '<i class="fas fa-eye"></i> Show';
+        } else {
+            input.type = 'text';
+            button.innerHTML = '<i class="fas fa-eye-slash"></i> Hide';
+        }
+        
+        isApiKeyVisible = !isApiKeyVisible;
+    }
+
+    function copyApiKey() {
+        const input = document.getElementById('apiKeyInput');
+        input.type = 'text';
+        input.select();
+        document.execCommand('copy');
+        input.type = 'password';
+        
+        const button = event.target.closest('button');
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-check"></i> Copied!';
+        
+        setTimeout(() => {
+            button.innerHTML = originalText;
+        }, 2000);
+    }
+
+    function confirmRegenerateKey() {
+        document.getElementById('regenerateModal').showModal();
+    }
+
+    function regenerateKey() {
+        const button = event.target;
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Regenerating...';
+
+        fetch('{% url "regenerate_api_key" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('apiKeyInput').value = data.api_key;
+                document.getElementById('regenerateModal').close();
+                showToast('API key regenerated successfully!', 'success');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showToast('Error: ' + data.error, 'error');
+                button.disabled = false;
+                button.innerHTML = '<i class="fas fa-redo"></i> Regenerate';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('An error occurred', 'error');
+            button.disabled = false;
+            button.innerHTML = '<i class="fas fa-redo"></i> Regenerate';
+        });
+    }
+
+    // Callbacks Functions
+    function loadCallbacks() {
+        fetch('{% url "callbacks_list" %}')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const tbody = document.getElementById('callbacksTableBody');
+                    if (data.callbacks.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-slate-500">No callbacks configured yet</td></tr>';
+                        return;
+                    }
+                    
+                    tbody.innerHTML = data.callbacks.map(cb => `
+                        <tr class="hover:bg-slate-50">
+                            <td class="px-6 py-4 text-sm font-medium text-slate-900">${cb.event_type}</td>
+                            <td class="px-6 py-4 text-sm text-slate-600 font-mono break-all">${cb.url}</td>
+                            <td class="px-6 py-4 text-sm">
+                                <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">Active</span>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-slate-600">${cb.created_at}</td>
+                            <td class="px-6 py-4 text-sm flex gap-3">
+                                <button onclick="viewCallbackLogs(${cb.id})" class="text-blue-600 hover:text-blue-700 whitespace-nowrap">
+                                    <i class="fas fa-history"></i> Logs
+                                </button>
+                                <button onclick="editCallback(${cb.id}, '${cb.event_type}', '${cb.url}')" class="text-blue-600 hover:text-blue-700 whitespace-nowrap">
+                                    <i class="fas fa-edit"></i> Edit
+                                </button>
+                                <button onclick="testCallback(${cb.id})" class="text-green-600 hover:text-green-700 whitespace-nowrap">
+                                    <i class="fas fa-flask"></i> Test
+                                </button>
+                                <button onclick="deleteCallback(${cb.id})" class="text-red-600 hover:text-red-700 whitespace-nowrap">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+            });
+    }
+
+    function openCallbackModal() {
+        document.getElementById('callbackForm').reset();
+        document.getElementById('callbackId').value = '';
+        document.getElementById('callbackModalTitle').textContent = 'Add Callback';
+        document.getElementById('callbackModal').showModal();
+    }
+
+    function editCallback(callbackId, eventType, callbackUrl) {
+        document.getElementById('callbackId').value = callbackId;
+        document.getElementById('eventType').value = eventType;
+        document.getElementById('callbackUrl').value = callbackUrl;
+        document.getElementById('callbackModalTitle').textContent = 'Edit Callback';
+        document.getElementById('callbackModal').showModal();
+    }
+
+    function saveCallback(e) {
+        e.preventDefault();
+        const callbackId = document.getElementById('callbackId').value;
+        const eventType = document.getElementById('eventType').value;
+        const callbackUrl = document.getElementById('callbackUrl').value;
+        
+        const url = callbackId 
+            ? `/dashboard/integrations/callbacks/${callbackId}/`
+            : '{% url "callbacks_add" %}';
+        
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                event_type: eventType,
+                callback_url: callbackUrl
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('callbackModal').close();
+                loadCallbacks();
+                showToast(data.message, 'success');
+            } else {
+                showToast('Error: ' + data.error, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('An error occurred', 'error');
+        });
+    }
+
+    function deleteCallback(callbackId) {
+        if (!confirm('Are you sure you want to delete this callback?')) return;
+        
+        fetch(`/dashboard/integrations/callbacks/${callbackId}/delete/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                loadCallbacks();
+                showToast(data.message, 'success');
+            } else {
+                showToast('Error: ' + data.error, 'error');
+            }
+        });
+    }
+
+    function testCallback(callbackId) {
+        const button = event.target.closest('button');
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing...';
+        
+        fetch(`/dashboard/integrations/callbacks/${callbackId}/test/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            button.disabled = false;
+            button.innerHTML = '<i class="fas fa-flask"></i> Test';
+            
+            if (data.success) {
+                showToast(`Test successful! Status: ${data.status_code}`, 'success');
+            } else {
+                showToast('Error: ' + data.error, 'error');
+            }
+        });
+    }
+
+    function viewCallbackLogs(callbackId) {
+        currentCallbackId = callbackId;
+        currentLogsPage = 1;
+        loadCallbackLogs(1);
+        document.getElementById('callbackLogsModal').showModal();
+    }
+
+    function loadCallbackLogs(page = 1) {
+        fetch(`/dashboard/integrations/callbacks/${currentCallbackId}/logs/?page=${page}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const tbody = document.getElementById('callbackLogsTableBody');
+                    if (data.logs.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-8 text-center text-slate-500">No logs yet</td></tr>';
+                    } else {
+                        tbody.innerHTML = data.logs.map(log => `
+                            <tr class="hover:bg-slate-50">
+                                <td class="px-4 py-3 text-sm">
+                                    <span class="px-2 py-1 rounded text-xs font-medium ${
+                                        log.success ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                                    }">
+                                        ${log.status_code}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 text-sm text-slate-600 font-mono truncate">${log.response_snippet}</td>
+                                <td class="px-4 py-3 text-sm text-slate-600">${log.created_at}</td>
+                                <td class="px-4 py-3 text-sm">
+                                    <button type="button" onclick="viewLogDetail(${log.id})" class="text-blue-600 hover:text-blue-700">
+                                        <i class="fas fa-eye"></i> View
+                                    </button>
+                                </td>
+                            </tr>
+                        `).join('');
+                    }
+
+                    // Pagination
+                    const pagination = document.getElementById('logsPagination');
+                    pagination.innerHTML = '';
+                    for (let i = 1; i <= data.total_pages; i++) {
+                        const btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.className = i === page 
+                            ? 'px-3 py-1 bg-blue-600 text-white rounded' 
+                            : 'px-3 py-1 bg-slate-200 text-slate-700 rounded hover:bg-slate-300';
+                        btn.textContent = i;
+                        btn.onclick = () => loadCallbackLogs(i);
+                        pagination.appendChild(btn);
+                    }
+                }
+            });
+    }
+
+    function viewLogDetail(logId) {
+        fetch(`/dashboard/integrations/callbacks/logs/${logId}/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const log = data.log;
+                    document.getElementById('logStatusCode').textContent = log.status_code;
+                    document.getElementById('logPayload').textContent = JSON.stringify(log.payload, null, 2);
+                    document.getElementById('logResponse').textContent = log.response_body;
+                    document.getElementById('logDetailModal').showModal();
+                } else {
+                    showToast('Error: ' + data.error, 'error');
+                }
+            });
+    }
+
+    // Whitelist Functions
+    function loadWhitelistIPs() {
+        fetch('{% url "whitelist_ips" %}')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const tbody = document.getElementById('whitelistTableBody');
+                    if (data.ips.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-8 text-center text-slate-500">No IP addresses whitelisted yet</td></tr>';
+                        return;
+                    }
+                    
+                    tbody.innerHTML = data.ips.map(ip => `
+                        <tr class="hover:bg-slate-50">
+                            <td class="px-6 py-4 text-sm font-medium text-slate-900 font-mono">${ip.ip_address}</td>
+                            <td class="px-6 py-4 text-sm text-slate-600">${ip.description || 'N/A'}</td>
+                            <td class="px-6 py-4 text-sm text-slate-600">${ip.created_at}</td>
+                            <td class="px-6 py-4 text-sm">
+                                <button type="button" onclick="deleteWhitelist(${ip.id})" class="text-red-600 hover:text-red-700">
+                                    <i class="fas fa-trash"></i> Remove
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+            });
+    }
+
+    function openWhitelistModal() {
+        document.getElementById('whitelistForm').reset();
+        document.getElementById('whitelistModal').showModal();
+    }
+
+    function saveWhitelist(e) {
+        e.preventDefault();
+        const ipAddress = document.getElementById('ipAddress').value;
+        const description = document.getElementById('ipDescription').value;
+        
+        fetch('{% url "whitelist_add" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                ip_address: ipAddress,
+                description: description
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('whitelistModal').close();
+                loadWhitelistIPs();
+                showToast(data.message, 'success');
+            } else {
+                showToast('Error: ' + data.error, 'error');
+            }
+        });
+    }
+
+    function deleteWhitelist(whitelistId) {
+        if (!confirm('Are you sure you want to remove this IP address?')) return;
+        
+        fetch(`/dashboard/integrations/whitelist/${whitelistId}/delete/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                loadWhitelistIPs();
+                showToast(data.message, 'success');
+            } else {
+                showToast('Error: ' + data.error, 'error');
+            }
+        });
+    }
+
+    // Close modals on ESC key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            document.getElementById('callbackModal').close();
+            document.getElementById('callbackLogsModal').close();
+            document.getElementById('logDetailModal').close();
+            document.getElementById('whitelistModal').close();
+            document.getElementById('regenerateModal').close();
+        }
+    });
+</script>
+{% endblock %}

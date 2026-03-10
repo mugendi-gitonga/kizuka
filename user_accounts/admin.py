@@ -30,3 +30,10 @@ class InviteUserLogAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         return request.user.is_superuser
 
+
+@admin.register(Business)
+class BusinessAdmin(admin.ModelAdmin):
+    list_display = ('name', 'owner', 'created_at')
+    search_fields = ('name', 'owner__email')
+    readonly_fields = ('created_at',)
+    ordering = ('-created_at',)

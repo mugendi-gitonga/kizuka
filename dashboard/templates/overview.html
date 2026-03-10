@@ -2,13 +2,438 @@
 
 {% block content %}
     <div class="p-6">
-        <h1 class="text-2xl font-bold text-slate-900 mb-4">Dashboard Overview</h1>
-        <p class="text-slate-700 mb-6">Welcome to your dashboard! Here you can manage your account, view analytics, and access all the features of FinFlow.</p>
+        <!-- Page Header -->
+        <div class="mb-8">
+            <h1 class="text-4xl font-bold text-slate-900 mb-2">Dashboard Overview</h1>
+            <p class="text-slate-600">Welcome back! Here's your account summary and recent activity.</p>
+        </div>
 
-        <!-- Placeholder for dashboard content -->
-        <div class="bg-white rounded-lg shadow-lg p-6">
-            <h2 class="text-xl font-semibold text-slate-900 mb-3">Your Account Summary</h2>
-            <p class="text-slate-700">This section will display a summary of your account activity, recent transactions, and important notifications.</p>
+        <!-- Wallet Balance Card -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <!-- Primary Wallet Card (KES) -->
+            <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg p-8 text-white">
+                <div class="flex justify-between items-start mb-12">
+                    <div>
+                        <p class="text-blue-100 text-sm font-semibold mb-1">{% if primary_wallet %}{{ primary_wallet.currency }}{% else %}KES{% endif %} Wallet Balance</p>
+                        <h2 class="text-4xl font-bold">
+                            {% if primary_wallet %}
+                                {{ primary_wallet.currency }} {{ primary_wallet.balance|floatformat:2 }}
+                            {% else %}
+                                KES 0.00
+                            {% endif %}
+                        </h2>
+                    </div>
+                    <div class="bg-blue-400 rounded-full p-3">
+                        <i class="fas fa-wallet text-xl"></i>
+                    </div>
+                </div>
+                <div class="flex gap-3">
+                    <button class="btn btn-sm btn-outline btn-white bg-white text-blue-600 hover:bg-blue-50" 
+                            onclick="document.getElementById('topup_modal').showModal()">
+                        <i class="fas fa-plus"></i> Top Up
+                    </button>
+                    <button class="btn btn-sm btn-outline btn-white border-white text-white hover:bg-blue-700">
+                        <i class="fas fa-arrow-right"></i> Withdraw
+                    </button>
+                </div>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="mb-6">
+                    <p class="text-slate-500 text-sm font-semibold mb-2">Total Deposits</p>
+                    <div class="flex items-baseline gap-2">
+                        <span class="text-3xl font-bold text-green-600">
+                            {% if recent_deposits|length > 0 %}
+                                {{ recent_deposits|length }}
+                            {% else %}
+                                0
+                            {% endif %}
+                        </span>
+                        <span class="text-green-600 text-sm font-medium">
+                            <i class="fas fa-arrow-up"></i> This month
+                        </span>
+                    </div>
+                </div>
+                <a href="{% url 'deposit_list' %}" class="text-blue-600 hover:text-blue-700 text-sm font-medium">
+                    View deposits <i class="fas fa-arrow-right ml-1"></i>
+                </a>
+            </div>
+
+            <!-- Transaction Stats -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="mb-6">
+                    <p class="text-slate-500 text-sm font-semibold mb-2">Recent Transactions</p>
+                    <div class="flex items-baseline gap-2">
+                        <span class="text-3xl font-bold text-slate-900">
+                            {% if recent_transactions|length > 0 %}
+                                {{ recent_transactions|length }}
+                            {% else %}
+                                0
+                            {% endif %}
+                        </span>
+                        <span class="text-slate-500 text-sm font-medium">transactions</span>
+                    </div>
+                </div>
+                <p class="text-slate-600 text-sm">View your transaction history below</p>
+            </div>
+        </div>
+
+        <!-- All Wallets Section -->
+        {% if wallets|length > 1 %}
+        <div class="mb-8">
+            <h3 class="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                <i class="fas fa-wallet text-blue-600"></i>
+                All Wallets
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for wallet in wallets %}
+                    {% if wallet.currency != 'KES' %}
+                    <div class="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <p class="text-slate-500 text-sm font-semibold mb-1">{{ wallet.get_currency_display }}</p>
+                                <h4 class="text-2xl font-bold text-slate-900">{{ wallet.currency }} {{ wallet.balance|floatformat:2 }}</h4>
+                            </div>
+                            <span class="text-sm bg-slate-100 px-3 py-1 rounded-full text-slate-700 font-medium">
+                                {% if wallet.can_withdraw %}
+                                    <i class="fas fa-check-circle text-green-600"></i> Active
+                                {% else %}
+                                    <i class="fas fa-ban text-red-600"></i> Disabled
+                                {% endif %}
+                            </span>
+                        </div>
+                        <button class="btn btn-sm btn-outline btn-primary w-full"
+                                onclick="setWalletCurrency('{{ wallet.currency }}')">
+                            <i class="fas fa-plus"></i> Top Up {{ wallet.currency }}
+                        </button>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Recent Transactions Section -->
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-slate-100">
+                <h3 class="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                    <i class="fas fa-history text-blue-600"></i>
+                    Recent Transactions
+                </h3>
+            </div>
+
+            {% if recent_transactions %}
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-slate-50 border-b border-slate-200">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">Type</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">Description</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">Amount</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">Reference</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">Date</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200">
+                            {% for transaction in recent_transactions %}
+                                <tr class="hover:bg-slate-50 transition-colors">
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center gap-2">
+                                            {% if transaction.trans_type == "DEPOSIT" %}
+                                                <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-green-100">
+                                                    <i class="fas fa-arrow-down text-green-600"></i>
+                                                </span>
+                                                <span class="px-3 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">{{ transaction.trans_type }}</span>
+                                            {% elif transaction.trans_type == "WITHDRAWAL" %}
+                                                <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-red-100">
+                                                    <i class="fas fa-arrow-up text-red-600"></i>
+                                                </span>
+                                                <span class="px-3 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded-full">{{ transaction.trans_type }}</span>
+                                            {% elif transaction.trans_type == "FEE" %}
+                                                <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-yellow-100">
+                                                    <i class="fas fa-dollar-sign text-yellow-600"></i>
+                                                </span>
+                                                <span class="px-3 py-1 bg-yellow-100 text-yellow-700 text-xs font-semibold rounded-full">{{ transaction.trans_type }}</span>
+                                            {% elif transaction.trans_type == "PAYOUT" %}
+                                                <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-purple-100">
+                                                    <i class="fas fa-exchange-alt text-purple-600"></i>
+                                                </span>
+                                                <span class="px-3 py-1 bg-purple-100 text-purple-700 text-xs font-semibold rounded-full">{{ transaction.trans_type }}</span>
+                                            {% else %}
+                                                <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-100">
+                                                    <i class="fas fa-exchange text-slate-600"></i>
+                                                </span>
+                                                <span class="px-3 py-1 bg-slate-100 text-slate-700 text-xs font-semibold rounded-full">{{ transaction.trans_type }}</span>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <p class="text-slate-900 font-medium">{{ transaction.description|truncatewords:5 }}</p>
+                                        {% if transaction.description %}
+                                            <p class="text-slate-500 text-sm">{{ transaction.description }}</p>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span class="font-semibold {% if transaction.trans_type == 'DEPOSIT' %}text-green-600{% elif transaction.trans_type == 'WITHDRAWAL' %}text-red-600{% else %}text-slate-900{% endif %}">
+                                            {% if transaction.trans_type == "DEPOSIT" %}
+                                                +{{ transaction.wallet.currency }} {{ transaction.amount|floatformat:2 }}
+                                            {% else %}
+                                                -{{ transaction.wallet.currency }} {{ transaction.amount|floatformat:2 }}
+                                            {% endif %}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <code class="text-xs bg-slate-100 px-2 py-1 rounded text-slate-700">
+                                            {% if transaction.reference %}
+                                                {{ transaction.reference|truncatechars:15 }}
+                                            {% else %}
+                                                <span class="text-slate-400">—</span>
+                                            {% endif %}
+                                        </code>
+                                    </td>
+                                    <td class="px-6 py-4 text-slate-600 text-sm">
+                                        <time datetime="{{ transaction.created_at|date:'c' }}" title="{{ transaction.created_at|date:'F j, Y H:i' }}">
+                                            {{ transaction.created_at|date:'M d, Y' }}
+                                        </time>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="px-6 py-12 text-center">
+                    <div class="mb-4">
+                        <i class="fas fa-receipt text-4xl text-slate-300"></i>
+                    </div>
+                    <h4 class="text-lg font-semibold text-slate-900 mb-2">No Transactions Yet</h4>
+                    <p class="text-slate-600 mb-4">You haven't made any transactions yet. Start by topping up your wallet!</p>
+                    <button class="btn btn-sm btn-primary" onclick="document.getElementById('topup_modal').showModal()">
+                        <i class="fas fa-plus"></i> Make Your First Deposit
+                    </button>
+                </div>
+            {% endif %}
         </div>
     </div>
+
+    <!-- Top-up Modal -->
+    <dialog id="topup_modal" class="modal">
+        <div class="modal-box w-full max-w-md">
+            <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" onclick="document.getElementById('topup_modal').close()">
+                ✕
+            </button>
+            
+            <h3 class="font-bold text-lg mb-6 flex items-center gap-2">
+                <i class="fas fa-wallet text-blue-600"></i>
+                Top Up Your <span id="modal_currency">KES</span> Wallet
+            </h3>
+
+            <form id="topup_form" onsubmit="handleTopup(event)">
+                {% csrf_token %}
+                
+                <!-- Currency Selection -->
+                <div class="form-control mb-4">
+                    <label class="label">
+                        <span class="label-text font-semibold text-slate-700">Select Wallet</span>
+                    </label>
+                    <select class="select select-bordered w-full" id="currency" name="currency" onchange="updateCurrencyDisplay()">
+                        <option value="KES" selected>KES - Kenyan Shilling</option>
+                        {% for wallet in wallets %}
+                            {% if wallet.currency != 'KES' %}
+                        <option value="{{ wallet.currency }}">{{ wallet.currency }} - {{ wallet.get_currency_display }}</option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Phone Number -->
+                <div class="form-control mb-4">
+                    <label class="label">
+                        <span class="label-text font-semibold text-slate-700">M-Pesa Phone Number</span>
+                    </label>
+                    <input 
+                        type="tel" 
+                        placeholder="" 
+                        class="input input-bordered w-full" 
+                        id="phone_number"
+                        name="phone_number"
+                        required
+                        pattern="[0-9]{10,13}"
+                        title="Enter a valid phone number (10-13 digits)"
+                    />
+                    <label class="label">
+                        <span class="label-text-alt text-slate-500">Format: 254712345678 or 0712345678</span>
+                    </label>
+                </div>
+
+                <!-- Amount -->
+                <div class="form-control mb-4">
+                    <label class="label">
+                        <span class="label-text font-semibold text-slate-700">Amount (<span id="amount_currency">KES</span>)</span>
+                    </label>
+                    <input 
+                        type="number" 
+                        placeholder="" 
+                        class="input input-bordered w-full" 
+                        id="amount"
+                        name="amount"
+                        required
+                        min="10"
+                        step="0.01"
+                    />
+                    <label class="label">
+                        <span class="label-text-alt text-slate-500">Minimum amount: <span id="min_amount">KES</span> 10.00</span>
+                    </label>
+                </div>
+
+                <!-- Info Box -->
+                <div class="alert alert-info mb-6">
+                    <i class="fas fa-info-circle"></i>
+                    <span>You'll receive an M-Pesa prompt on your phone. Enter your M-Pesa PIN to confirm the payment.</span>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="modal-action">
+                    <button type="button" class="btn btn-ghost" onclick="document.getElementById('topup_modal').close()">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="submit_btn">
+                        <i class="fas fa-arrow-up"></i> Send Payment Request
+                    </button>
+                </div>
+            </form>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+            <button>Close</button>
+        </form>
+    </dialog>
+
+    <script>
+        // Set wallet currency when clicking a wallet's top-up button
+        function setWalletCurrency(currency) {
+            document.getElementById('currency').value = currency;
+            updateCurrencyDisplay();
+            document.getElementById('topup_modal').showModal();
+        }
+
+        // Update currency display in modal
+        function updateCurrencyDisplay() {
+            const currency = document.getElementById('currency').value;
+            document.getElementById('modal_currency').textContent = currency;
+            document.getElementById('amount_currency').textContent = currency;
+            document.getElementById('min_amount').textContent = currency;
+        }
+
+        async function handleTopup(event) {
+            event.preventDefault();
+            
+            const form = document.getElementById('topup_form');
+            const submitBtn = document.getElementById('submit_btn');
+            const phoneNumber = document.getElementById('phone_number').value;
+            const amount = document.getElementById('amount').value;
+            const currency = document.getElementById('currency').value;
+            
+            // Determine country from currency
+            const currencyToCountry = {
+                'KES': 'KE',
+                'TZS': 'TZ',
+                'UGX': 'UG',
+                'USD': 'KE', // Default to KE for USD
+                'EUR': 'KE',
+                'GBP': 'KE',
+            };
+            const country = currencyToCountry[currency] || 'KE';
+            
+            // Disable submit button
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="loading loading-spinner loading-sm"></span> Processing...';
+            
+            try {
+                // Call the deposit API
+                const response = await fetch('{% url "create_deposit_request" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || '',
+                    },
+                    body: JSON.stringify({
+                        phone_number: phoneNumber,
+                        amount: parseFloat(amount),
+                        country: country,
+                        currency: currency,
+                        provider: 'MPESA-C2B',
+                    }),
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Show success message
+                    Toastify({
+                        text: `Payment request sent! Check your phone for M-Pesa prompt to top up ${currency}.`,
+                        duration: 4000,
+                        gravity: 'top',
+                        position: 'right',
+                        backgroundColor: '#10b981',
+                        stopOnFocus: true,
+                    }).showToast();
+                    
+                    // Reset form and close modal
+                    form.reset();
+                    document.getElementById('currency').value = 'KES';
+                    updateCurrencyDisplay();
+                    document.getElementById('topup_modal').close();
+                    
+                    // Refresh the page after a delay
+                    setTimeout(() => {
+                        location.reload();
+                    }, 2000);
+                } else {
+                    const errorData = await response.json();
+                    const errorMsg = errorData.detail || errorData.error || 'Something went wrong. Please try again.';
+                    
+                    Toastify({
+                        text: errorMsg,
+                        duration: 4000,
+                        gravity: 'top',
+                        position: 'right',
+                        backgroundColor: '#ef4444',
+                        stopOnFocus: true,
+                    }).showToast();
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                Toastify({
+                    text: 'Network error. Please try again.',
+                    duration: 4000,
+                    gravity: 'top',
+                    position: 'right',
+                    backgroundColor: '#ef4444',
+                    stopOnFocus: true,
+                }).showToast();
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-arrow-up"></i> Send Payment Request';
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom styles for modal animations */
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .modal-box {
+            animation: slideIn 0.3s ease-out;
+        }
+    </style>
 {% endblock %}

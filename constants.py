@@ -1,9 +1,17 @@
+CURRENCIES = [
+    ("KES", "KES"),
+    # ("UGX", "UGX"),
+    # ("TZS", "TZS"),
+    # ("ZMW", "ZMW"),
+]
+
 DEPOSIT_COUNTRIES_CHOICES = [
     ("KE", "Kenya"),
     ("UG", "Uganda"),
     ("TZ", "Tanzania"),
     ("ZM", "Zambia"),
 ]
+
 
 COUNTRIES = (
     ('AF', 'Afghanistan'),

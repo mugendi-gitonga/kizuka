@@ -5,7 +5,7 @@ from decimal import Decimal
 from django.db import models
 
 from common import AliasModel
-from constants import DEPOSIT_COUNTRIES_CHOICES
+from constants import CURRENCIES, DEPOSIT_COUNTRIES_CHOICES
 from validators import ALPHANUMERIC_ONLY, NUMERIC_ONLY
 
 
@@ -17,15 +17,11 @@ PLAN_TYPES = [
     ("TIERED", "TIERED")
 ]
 
-CURRENCIES = [
-    ("KES", "KES"),
-    # ("UGX", "UGX"),
-    # ("TZS", "TZS"),
-    # ("ZMW", "ZMW"),
-]
-
 PROVIDER_CHOICES = [
     ("MPESA-C2B", "MPESA-C2B"),
+]
+
+PAYOUT_PROVIDER_CHOICES = [
     ("MPESA-B2C", "MPESA-B2C"),
     ("MPESA-B2B", "MPESA-B2B"),
 ]
@@ -33,7 +29,7 @@ PROVIDER_CHOICES = [
 
 class PricingPlan(models.Model):
     name = models.CharField(max_length=45, validators=[ALPHANUMERIC_ONLY,],)
-    provider = models.CharField(max_length=20, choices=PROVIDER_CHOICES)
+    provider = models.CharField(max_length=20, choices=PROVIDER_CHOICES+PAYOUT_PROVIDER_CHOICES)
     currency = models.CharField(
         max_length=3,
         choices=CURRENCIES,
@@ -47,6 +43,9 @@ class PricingPlan(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.provider} - {self.currency}"
 
 
 class PricingCharge(models.Model):
@@ -72,21 +71,21 @@ class BusinessPricingPlan(models.Model):
         unique_together = ("plan", "business")
 
     @classmethod
-    def calculate_charge(cls, business, provider, amount, currency):
+    def calculate_charge(cls, business, provider, amount, currency, country):
         try:
-            subscription = cls.objects.filter(business=business, plan__provider=provider, plan__currency=currency).select_related("plan").first()
+            subscription = cls.objects.filter(business=business, plan__provider=provider, plan__currency=currency, plan__country=country).select_related("plan").first()
             if not subscription:
                 raise ValueError(f"No pricing plan found for business {business.id} with provider {provider} and currency {currency}")
             
             if subscription.plan.tarrif_type == "PERCENTAGE":
-                charge = subscription.plan.charges.filter(country=business.country, min_amount__lte=amount, max_amount__gte=amount).first()
+                charge = subscription.plan.charges.filter(min_amount__lte=amount, max_amount__gte=amount).first()
                 if charge:
                     return charge.charge if not charge.is_percentage else Decimal((charge.charge / 100) * amount)
             elif subscription.plan.tarrif_type == "TIERED":
-                charge = subscription.plan.charges.filter(country=business.country, min_amount__lte=amount, max_amount__gte=amount).first()
+                charge = subscription.plan.charges.filter(min_amount__lte=amount, max_amount__gte=amount).first()
                 if charge:
                     return Decimal(charge.charge)
-            return None
+            return 0
         except Exception as e:
             logger.error(f"Error calculating charge for business {business.id} and provider {provider}: {str(e)}", exc_info=True)
 

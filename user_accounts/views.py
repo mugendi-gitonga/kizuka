@@ -14,6 +14,7 @@ from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 
+from callbacks.models import BusinessCallback, CallbackLog, WhitelistedIP
 from user_accounts.decorators import business_admin_required
 from user_accounts.utils import hash_token, verify_token_hash
 from .forms import LoginForm, SignUpForm, AddTeamMemberForm, ForgotPasswordForm, ResetPasswordForm, InviteUserForm
@@ -832,3 +833,470 @@ def users_toggle_status_view(request):
 
 def manage_users_view(request):
     return users_list_view(request)
+
+
+@login_required
+@business_admin_required
+def business_api_key_view(request):
+    """Display business API key - admin only"""
+    try:
+        business = request.business
+        if not business:
+            return redirect("dashboard_overview")
+        
+        # Get team member to verify admin status
+        team_member = BusinessTeamMember.objects.get(
+            business=business,
+            user=request.user
+        )
+        
+        # Only allow admin or business owner
+        if team_member.role != 'admin' and business.owner != request.user:
+            return render(request, '403.html', status=403)
+        
+        # Decrypt the API key
+        from utils import decrypt
+        try:
+            decrypted_api_key = decrypt(business.api_key)
+        except Exception as e:
+            logger.error(f"Error decrypting API key: {str(e)}")
+            decrypted_api_key = None
+        
+        context = {
+            'business': business,
+            'api_key': decrypted_api_key,
+        }
+        
+        return render(request, 'dashboard/api_key.html', context)
+    
+    except BusinessTeamMember.DoesNotExist:
+        return redirect("dashboard_overview")
+    except Exception as e:
+        logger.error(f"Error loading API key: {str(e)}")
+        return redirect("dashboard_overview")
+
+
+@login_required
+@business_admin_required
+@require_http_methods(["POST"])
+def regenerate_api_key_view(request):
+    """Regenerate business API key - admin only (AJAX endpoint)"""
+    try:
+        business = request.business
+        if not business:
+            return JsonResponse({
+                'success': False,
+                'error': 'No business selected'
+            }, status=400)
+        
+        # Get team member to verify admin status
+        team_member = BusinessTeamMember.objects.get(
+            business=business,
+            user=request.user
+        )
+        
+        # Only allow admin or business owner
+        if team_member.role != 'admin' and business.owner != request.user:
+            return JsonResponse({
+                'success': False,
+                'error': 'Only admins can regenerate API keys'
+            }, status=403)
+        
+        from utils import secret_key_generator
+        
+        with db_transaction.atomic():
+            key, key_encrypted = secret_key_generator()
+            business.api_key = key_encrypted
+            business.save(update_fields=['api_key'])
+            
+            logger.info(f"API key regenerated for business {business.id} by user {request.user.id}")
+        
+        # Return the decrypted key
+        return JsonResponse({
+            'success': True,
+            'message': 'API key regenerated successfully',
+            'api_key': key  # This is the plain key returned from secret_key_generator
+        })
+    
+    except BusinessTeamMember.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Unauthorized'
+        }, status=403)
+    except Exception as e:
+        logger.error(f"Error regenerating API key: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': 'An error occurred'
+        }, status=500)
+
+
+@login_required
+@business_admin_required
+def integrations_view(request):
+    """Main integrations page with tabs"""
+    try:
+        business = request.business
+        if not business:
+            return redirect("dashboard_overview")
+        
+        # Get team member to verify admin status
+        team_member = BusinessTeamMember.objects.get(
+            business=business,
+            user=request.user
+        )
+        
+        # Only allow admin or business owner
+        if team_member.role != 'admin' and business.owner != request.user:
+            return render(request, '403.html', status=403)
+        
+        # Decrypt the API key
+        from utils import decrypt
+        try:
+            decrypted_api_key = decrypt(business.api_key)
+        except Exception as e:
+            logger.error(f"Error decrypting API key: {str(e)}")
+            decrypted_api_key = None
+        
+        # Get callbacks
+        callbacks = BusinessCallback.objects.filter(business=business).order_by('-created_at')
+        
+        # Get whitelisted IPs
+        whitelisted_ips = WhitelistedIP.objects.filter(business=business, is_active=True).order_by('-created_at')
+        
+        context = {
+            'business': business,
+            'api_key': decrypted_api_key,
+            'callbacks': callbacks,
+            'whitelisted_ips': whitelisted_ips,
+            'active_tab': request.GET.get('tab', 'api-key'),
+        }
+        
+        return render(request, 'dashboard/integrations.html', context)
+    
+    except BusinessTeamMember.DoesNotExist:
+        return redirect("dashboard_overview")
+    except Exception as e:
+        logger.error(f"Error loading integrations: {str(e)}")
+        return redirect("dashboard_overview")
+
+
+@login_required
+@business_admin_required
+def callbacks_list_view(request):
+    """Get callbacks list (AJAX)"""
+    try:
+        business = request.business
+        if not business:
+            return JsonResponse({'success': False, 'error': 'No business selected'}, status=400)
+        
+        callbacks = BusinessCallback.objects.filter(business=business).order_by('-created_at')
+        
+        data = [
+            {
+                'id': cb.id,
+                'event_type': cb.event_type,
+                'url': cb.callback_url,
+                'is_active': cb.is_active,
+                'created_at': cb.created_at.strftime('%Y-%m-%d %H:%M'),
+            }
+            for cb in callbacks
+        ]
+        
+        return JsonResponse({'success': True, 'callbacks': data})
+    
+    except Exception as e:
+        logger.error(f"Error fetching callbacks: {str(e)}")
+        return JsonResponse({'success': False, 'error': 'An error occurred'}, status=500)
+
+
+@login_required
+@business_admin_required
+@require_http_methods(["POST"])
+def callbacks_add_edit_view(request, callback_id=None):
+    """Add or edit callback (AJAX)"""
+    try:
+        business = request.business
+        if not business:
+            return JsonResponse({'success': False, 'error': 'No business selected'}, status=400)
+        
+        data = json.loads(request.body)
+        event_type = data.get('event_type', '').upper()
+        callback_url = data.get('callback_url', '').strip()
+        
+        if not event_type or not callback_url:
+            return JsonResponse({'success': False, 'error': 'Missing required fields'}, status=400)
+        
+        # Validate URL format
+        if not callback_url.startswith(('http://', 'https://')):
+            return JsonResponse({'success': False, 'error': 'Invalid URL format'}, status=400)
+        
+        # Validate event type
+        valid_events = ['PAYIN', 'PAYOUT']
+        if event_type not in valid_events:
+            return JsonResponse({'success': False, 'error': 'Invalid event type'}, status=400)
+        
+        with db_transaction.atomic():
+            if callback_id:
+                # Edit existing callback
+                callback = BusinessCallback.objects.get(id=callback_id, business=business)
+                callback.event_type = event_type
+                callback.callback_url = callback_url
+                callback.save()
+                message = 'Callback updated successfully'
+            else:
+                # Create new callback
+                # Check if callback for this event type already exists
+                existing = BusinessCallback.objects.filter(
+                    business=business, 
+                    event_type=event_type
+                ).first()
+                
+                if existing:
+                    return JsonResponse({
+                        'success': False, 
+                        'error': f'A callback for {event_type} already exists. Please edit it instead.'
+                    }, status=400)
+                
+                callback = BusinessCallback.objects.create(
+                    business=business,
+                    event_type=event_type,
+                    callback_url=callback_url,
+                    is_active=True
+                )
+                message = 'Callback added successfully'
+        
+        return JsonResponse({
+            'success': True,
+            'message': message,
+            'callback': {
+                'id': callback.id,
+                'event_type': callback.event_type,
+                'url': callback.callback_url,
+                'is_active': callback.is_active,
+            }
+        })
+    
+    except BusinessCallback.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Callback not found'}, status=404)
+    except Exception as e:
+        logger.error(f"Error saving callback: {str(e)}")
+        return JsonResponse({'success': False, 'error': 'An error occurred'}, status=500)
+
+
+@login_required
+@business_admin_required
+@require_http_methods(["POST"])
+def callbacks_delete_view(request, callback_id):
+    """Delete callback"""
+    try:
+        business = request.business
+        if not business:
+            return JsonResponse({'success': False, 'error': 'No business selected'}, status=400)
+
+        callback = BusinessCallback.objects.get(id=callback_id, business=business)
+        callback.delete()
+
+        return JsonResponse({
+            'success': True,
+            'message': 'Callback deleted successfully'
+        })
+
+    except BusinessCallback.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Callback not found'}, status=404)
+    except Exception as e:
+        logger.error(f"Error deleting callback: {str(e)}")
+        return JsonResponse({'success': False, 'error': 'An error occurred'}, status=500)
+
+
+@login_required
+@business_admin_required
+def callback_logs_view(request, callback_id):
+    """Get callback logs (AJAX)"""
+    try:
+        business = request.business
+        if not business:
+            return JsonResponse(
+                {"success": False, "error": "No business selected"}, status=400
+            )
+
+        callback = BusinessCallback.objects.get(id=callback_id, business=business)
+
+        # Get logs with pagination
+        page = int(request.GET.get("page", 1))
+        per_page = 10
+
+        logs = CallbackLog.objects.filter(callback=callback).order_by("-created_at")
+        total_logs = logs.count()
+
+        start = (page - 1) * per_page
+        paginated_logs = logs[start : start + per_page]
+
+        data = [
+            {
+                "id": log.id,
+                "status_code": log.response_status,
+                "success": log.success,
+                "created_at": log.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+                "payload": log.payload,
+                "response_snippet": log.response_body[:200],
+            }
+            for log in paginated_logs
+        ]
+
+        return JsonResponse(
+            {
+                "success": True,
+                "logs": data,
+                "total": total_logs,
+                "page": page,
+                "per_page": per_page,
+                "total_pages": (total_logs + per_page - 1) // per_page,
+            }
+        )
+
+    except BusinessCallback.DoesNotExist:
+        return JsonResponse(
+            {"success": False, "error": "Callback not found"}, status=404
+        )
+    except Exception as e:
+        logger.error(f"Error fetching callback logs: {str(e)}")
+        return JsonResponse(
+            {"success": False, "error": "An error occurred"}, status=500
+        )
+
+
+@login_required
+@business_admin_required
+def callback_log_detail_view(request, log_id):
+    """Get detailed callback log (AJAX)"""
+    try:
+        business = request.business
+        if not business:
+            return JsonResponse(
+                {"success": False, "error": "No business selected"}, status=400
+            )
+
+        log = CallbackLog.objects.select_related("callback").get(
+            id=log_id, callback__business=business
+        )
+
+        return JsonResponse(
+            {
+                "success": True,
+                "log": {
+                    "id": log.id,
+                    "status_code": log.response_status,
+                    "success": log.success,
+                    "created_at": log.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+                    "payload": log.payload,
+                    "response_body": log.response_body,
+                },
+            }
+        )
+
+    except CallbackLog.DoesNotExist:
+        return JsonResponse({"success": False, "error": "Log not found"}, status=404)
+    except Exception as e:
+        logger.error(f"Error fetching callback log detail: {str(e)}")
+        return JsonResponse(
+            {"success": False, "error": "An error occurred"}, status=500
+        )
+
+
+@login_required
+@business_admin_required
+def whitelist_ips_view(request):
+    """Get whitelisted IPs (AJAX)"""
+    try:
+        business = request.business
+        if not business:
+            return JsonResponse({'success': False, 'error': 'No business selected'}, status=400)
+        
+        ips = WhitelistedIP.objects.filter(business=business).order_by('-created_at')
+        
+        data = [
+            {
+                'id': ip.id,
+                'ip_address': ip.ip_address,
+                'description': ip.description or 'N/A',
+                'created_at': ip.created_at.strftime('%Y-%m-%d %H:%M'),
+            }
+            for ip in ips
+        ]
+        
+        return JsonResponse({'success': True, 'ips': data})
+    
+    except Exception as e:
+        logger.error(f"Error fetching whitelisted IPs: {str(e)}")
+        return JsonResponse({'success': False, 'error': 'An error occurred'}, status=500)
+
+
+@login_required
+@business_admin_required
+@require_http_methods(["POST"])
+def whitelist_add_view(request):
+    """Add whitelisted IP"""
+    try:
+        business = request.business
+        if not business:
+            return JsonResponse({'success': False, 'error': 'No business selected'}, status=400)
+        
+        data = json.loads(request.body)
+        ip_address = data.get('ip_address', '').strip()
+        description = data.get('description', '').strip()
+        
+        if not ip_address:
+            return JsonResponse({'success': False, 'error': 'IP address is required'}, status=400)
+        
+        try:
+            with db_transaction.atomic():
+                whitelist = WhitelistedIP.objects.create(
+                    business=business,
+                    ip_address=ip_address,
+                    description=description,
+                    is_active=True
+                )
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'IP address whitelisted successfully',
+                'ip': {
+                    'id': whitelist.id,
+                    'ip_address': whitelist.ip_address,
+                    'description': whitelist.description or 'N/A',
+                }
+            })
+        except Exception as e:
+            if 'unique' in str(e).lower():
+                return JsonResponse({'success': False, 'error': 'This IP address is already whitelisted'}, status=400)
+            raise
+    
+    except Exception as e:
+        logger.error(f"Error adding whitelisted IP: {str(e)}")
+        return JsonResponse({'success': False, 'error': 'An error occurred'}, status=500)
+
+
+@login_required
+@business_admin_required
+@require_http_methods(["POST"])
+def whitelist_delete_view(request, whitelist_id):
+    """Delete whitelisted IP"""
+    try:
+        business = request.business
+        if not business:
+            return JsonResponse({'success': False, 'error': 'No business selected'}, status=400)
+        
+        whitelist = WhitelistedIP.objects.get(id=whitelist_id, business=business)
+        whitelist.delete()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'IP address removed from whitelist'
+        })
+    
+    except WhitelistedIP.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Whitelisted IP not found'}, status=404)
+    except Exception as e:
+        logger.error(f"Error deleting whitelisted IP: {str(e)}")
+        return JsonResponse({'success': False, 'error': 'An error occurred'}, status=500)

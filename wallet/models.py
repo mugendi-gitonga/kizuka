@@ -2,24 +2,37 @@ import logging
 
 from django.db import models
 from django.db import transaction as db_transaction
+from django.db.models import F
 from dns.transaction import Transaction
 
 from common import AliasModel
 
 
 logger = logging.getLogger(__name__)
+
+CURRENCY_CHOICES = [
+    ("KES", "Kenyan Shilling"),
+    ("UGX", "Ugandan Shilling"),
+    ("TZS", "Tanzanian Shilling"),
+]
+
 # Create your models here.
 
 class Wallet(AliasModel):
-    business = models.OneToOneField("user_accounts.Business", on_delete=models.CASCADE, related_name="wallet")
-    balance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    business = models.ForeignKey("user_accounts.Business", on_delete=models.CASCADE, related_name="wallets")
+    currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="KES")
+    balance = models.DecimalField(max_digits=15, decimal_places=2, default=0)
     can_withdraw = models.BooleanField(default=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        unique_together = ('business', 'currency')
+        ordering = ['-created_at']
+
     def __str__(self):
-        return f"{self.business.name}-{self.balance}"
+        return f"{self.business.name}-{self.currency}-{self.balance}"
 
     def credit(self, amount, reference, trans_type, description=None):
         tx_exists = Transaction.objects.filter(reference=reference).exists()
@@ -28,8 +41,9 @@ class Wallet(AliasModel):
             return
 
         with db_transaction.atomic():
-            self.balance += amount
+            self.balance = F('balance') + amount
             self.save()
+            self.refresh_from_db()
 
             tx = Transaction.objects.create(
                 wallet=self,
@@ -52,8 +66,9 @@ class Wallet(AliasModel):
             return
 
         with db_transaction.atomic():
-            self.balance -= amount
+            self.balance = F('balance') - amount
             self.save()
+            self.refresh_from_db()
 
             tx = Transaction.objects.create(
                 wallet=self,
@@ -86,3 +101,7 @@ class Transaction(AliasModel):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        unique_together = ('wallet', 'reference')
