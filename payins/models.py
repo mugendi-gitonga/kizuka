@@ -42,6 +42,7 @@ class DepositRequest(AliasModel):
     message = models.CharField(max_length=255, blank=True, null=True)
     provider = models.CharField(choices=PROVIDER_CHOICES, max_length=20, blank=True, null=True)  # e.g. MPESA-C2B
     provider_reference = models.CharField(max_length=255, blank=True, null=True, validators=[ALPHANUMERIC_ONLY])
+    wallet_credited = models.BooleanField(default=False)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -83,6 +84,8 @@ class DepositRequest(AliasModel):
             wallet.debit(self.charge, reference=f"FEE-{self.alias}", trans_type="FEE", description=f"Charge of {self.charge} for deposit INV-{self.alias}")
             if self.taxes:
                 wallet.debit(self.taxes, reference=f"TAX-{self.alias}", trans_type="TAX", description=f"Tax of {self.taxes} for deposit INV-{self.alias}")
+            self.wallet_credited = True
+            self.save()
 
         db_transaction.on_commit(lambda: send_callback_notification.apply_async(args=[self.id, "PAYIN",]))
 

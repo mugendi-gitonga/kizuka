@@ -27,6 +27,10 @@ def mark_as_completed(modeladmin, request, queryset):
                 deposit.refresh_from_db()  # Ensure we have the latest data
                 deposit.complete()  # Call the method to handle completion logic
                 updated_count += 1
+            elif deposit.status == "SUCCESS" and not deposit.wallet_credited:
+                # If already marked as SUCCESS but wallet not credited, try to credit it
+                deposit.complete()
+                updated_count += 1
         except Exception as e:
             modeladmin.message_user(request, f"Error processing deposit {deposit.id}: {str(e)}", level="error")
     modeladmin.message_user(request, f"{updated_count} deposit request(s) marked as completed.")
