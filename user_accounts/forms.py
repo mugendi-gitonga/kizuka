@@ -79,7 +79,7 @@ class SignUpForm(forms.Form):
         })
     )
     email = forms.EmailField(
-        max_length=254,
+        max_length=255,
         required=True,
         widget=forms.EmailInput(attrs={
             'placeholder': 'you@example.com',
@@ -147,8 +147,10 @@ class SignUpForm(forms.Form):
                 email=self.cleaned_data['email'],
                 first_name=self.cleaned_data['first_name'],
                 last_name=self.cleaned_data['last_name'],
-                password=self.cleaned_data['password']
             )
+            password = self.cleaned_data['password']
+            user.set_password(password)
+            user.save()
 
             business = Business.objects.create(
                 owner=user,
