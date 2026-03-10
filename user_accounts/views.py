@@ -384,13 +384,7 @@ def invite_user_view(request, token):
         )
     except Exception as e:
         logger.error(f"Invite activation failed: {str(e)} from IP {client_ip}")
-        return render(request, 'auth/invite_user.html', {"error": "Invalid or expired invite link.", "token": token, "form": form, "countries": COUNTRIES})
-
-    return render(
-        request,
-        "auth/invite_user.html",
-        {"form": form, "token": token, "countries": COUNTRIES},
-    )
+        return render(request, 'auth/invite_user.html', {"error": "Invalid or expired invite link.", "token": token})
 
 
 def invite_user_done_view(request):
