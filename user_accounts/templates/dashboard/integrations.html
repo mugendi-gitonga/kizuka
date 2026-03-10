@@ -105,14 +105,19 @@
                 <div class="pt-6 border-t border-slate-200">
                     <h4 class="text-lg font-semibold text-slate-900 mb-4">How to Use</h4>
                     <div class="bg-slate-900 rounded-lg p-4 text-slate-100 font-mono text-sm overflow-x-auto">
-                        <pre>curl -X POST https://api.Kizuka.com/deposits \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "phone_number": "254712345678",
-    "amount": 1000,
-    "currency": "KES"
-  }'</pre>
+                        <pre>curl -X POST https://api.kizukapay.com/api/v1/deposits/init/ \
+                            -H "Authorization: Bearer YOUR_API_KEY" \
+                            -H "Content-Type: application/json" \
+                            -d '{
+                                "country": "KE",
+                                "currency": "KES",
+                                "provider": "MPESA-C2B",
+                                "phone_number": "254712345678",
+                                "amount": 1000,
+                                "reference": "Order #12345",
+                                "narration": "Payment for Order #12345"
+                            }'
+                        </pre>
                     </div>
                 </div>
             </div>

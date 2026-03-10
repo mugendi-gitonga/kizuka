@@ -11,7 +11,8 @@ from django.utils import timezone
 from django.db import transaction as db_transaction
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
-from django.contrib.auth.decorators import login_required
+from django.utils.decorators import method_decorator
+from django.contrib.auth.decorators import login_required, permission_required
 from django.core.paginator import Paginator
 
 from callbacks.models import BusinessCallback, CallbackLog, WhitelistedIP
@@ -982,7 +983,10 @@ def integrations_view(request):
 
 
 @login_required
-@business_admin_required
+@method_decorator(
+    permission_required("callbacks.view_businesscallback", raise_exception=True),
+    name="dispatch",
+)
 def callbacks_list_view(request):
     """Get callbacks list (AJAX)"""
     try:
@@ -1110,7 +1114,10 @@ def callbacks_delete_view(request, callback_id):
 
 
 @login_required
-@business_admin_required
+@method_decorator(
+    permission_required("callbacks.view_callbacklog", raise_exception=True),
+    name="dispatch",
+)
 def callback_logs_view(request, callback_id):
     """Get callback logs (AJAX)"""
     try:
@@ -1167,7 +1174,10 @@ def callback_logs_view(request, callback_id):
 
 
 @login_required
-@business_admin_required
+@method_decorator(
+    permission_required("callbacks.view_callbacklog", raise_exception=True),
+    name="dispatch",
+)
 def callback_log_detail_view(request, log_id):
     """Get detailed callback log (AJAX)"""
     try:
@@ -1205,7 +1215,10 @@ def callback_log_detail_view(request, log_id):
 
 
 @login_required
-@business_admin_required
+@method_decorator(
+    permission_required("callbacks.view_whitelistedip", raise_exception=True),
+    name="dispatch",
+)
 def whitelist_ips_view(request):
     """Get whitelisted IPs (AJAX)"""
     try:
