@@ -2,7 +2,7 @@ You're Invited to Join {{ business_name }}
 
 Hi {{ first_name }},
 
-{{ inviter_name }} has invited you to join {{ business_name }} as a member of their organization on FinFlow.
+{{ inviter_name }} has invited you to join {{ business_name }} as a member of their organization on Kizuka.
 
 Click the link below to accept the invitation:
 {{ accept_link }}
@@ -15,4 +15,4 @@ This invitation will expire in 7 days.
 Questions? Contact {{ business_email }} or visit our support page.
 
 Best regards,
-The FinFlow Team
+The Kizuka Team

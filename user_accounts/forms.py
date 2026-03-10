@@ -8,8 +8,10 @@ from django.conf import settings
 from django.contrib.auth import authenticate, login
 
 
+from pricing.models import BusinessPricingPlan
 from user_accounts.tasks import send_existing_invitation_email, send_invitation_email, send_verification_email
 from utils import check_phone_number, encode_jwt
+from wallet.models import Wallet
 from .utils import hash_token
 from .models import Business, BusinessTeamMember, UserProfile
 
@@ -50,6 +52,16 @@ class LoginForm(forms.Form):
 
 
 class SignUpForm(forms.Form):
+    business_name = forms.CharField(
+        max_length=30,
+        required=True,
+        widget=forms.TextInput(
+            attrs={
+                "placeholder": "My Awesome Business",
+                "class": "input input-bordered w-full bg-white border-slate-300 focus:border-blue-600 focus:outline-none",
+            }
+        ),
+    )
     first_name = forms.CharField(
         max_length=30,
         required=True,
@@ -140,8 +152,12 @@ class SignUpForm(forms.Form):
 
             business = Business.objects.create(
                 owner=user,
-                name=f"{user.first_name}'s Business"
+                name=self.cleaned_data['business_name']
             )
+
+            BusinessPricingPlan.seed_business_plans(business)
+            Wallet.seed_wallets_for_business(business)
+
             business.team_members.create(
                 user=user,
                 role='admin',

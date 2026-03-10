@@ -12,7 +12,7 @@
             <div class="bg-white rounded-lg shadow-lg px-4 py-8">
                 <!-- Logo/Brand Section -->
                 <div class="text-center mb-8">
-                    <h1 class="text-3xl font-bold text-slate-900 mb-2">FinFlow</h1>
+                    <h1 class="text-3xl font-bold text-slate-900 mb-2">Kizuka</h1>
                     <p class="text-slate-600 text-sm">Create Your Account</p>
                 </div>
 
@@ -34,6 +34,21 @@
                         </div>
                     </div>
                     {% endif %}
+
+                    <!-- Business Name Input -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-medium text-slate-700">Business Name</span>
+                        </label>
+                        {{ form.business_name }}
+                        {% if form.business_name.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-red-600 text-xs">
+                                {% for error in form.business_name.errors %}{{ error }}{% endfor %}
+                            </span>
+                        </label>
+                        {% endif %}
+                    </div>
 
                     <!-- Name Fields (Inline) -->
                     <div class="grid grid-cols-2 gap-3">

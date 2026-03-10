@@ -2,7 +2,7 @@ You're Invited to Join {{ business_name }}
 
 Hello {{ first_name }},
 
-You've been invited to join {{ business_name }} on FinFlow. We're excited to have you on board!
+You've been invited to join {{ business_name }} on Kizuka. We're excited to have you on board!
 
 ACCEPT YOUR INVITATION
 Click the link below to set up your account:
@@ -20,9 +20,9 @@ DID YOU NOT EXPECT THIS?
 If you believe this invitation was sent in error, you can safely ignore this email. Your email won't be signed up for anything unless you accept the invitation.
 
 ---
-FinFlow | Your trusted financial collaboration platform
+Kizuka | Your trusted financial collaboration platform
 
 Questions? Contact support at support@example.com
 Privacy Policy: https://example.com/privacy
 
-© 2026 FinFlow. All rights reserved.
+© 2026 Kizuka. All rights reserved.

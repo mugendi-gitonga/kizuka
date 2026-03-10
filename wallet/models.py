@@ -12,8 +12,8 @@ logger = logging.getLogger(__name__)
 
 CURRENCY_CHOICES = [
     ("KES", "Kenyan Shilling"),
-    ("UGX", "Ugandan Shilling"),
-    ("TZS", "Tanzanian Shilling"),
+    # ("UGX", "Ugandan Shilling"),
+    # ("TZS", "Tanzanian Shilling"),
 ]
 
 # Create your models here.
@@ -80,6 +80,10 @@ class Wallet(AliasModel):
             logger.info(f"Wallet debited with {amount}. New balance: {self.balance}. Transaction reference: {reference}")
             return tx
 
+    @staticmethod
+    def seed_wallets_for_business(business):
+        for currency_code, _ in CURRENCY_CHOICES:
+            Wallet.objects.get_or_create(business=business, currency=currency_code)
 
 class Transaction(AliasModel):
 
