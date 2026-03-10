@@ -365,7 +365,7 @@ class AddTeamMemberForm(forms.Form):
 
         return user_profile
 
-    def generate_invite_token(user_profile, business):
+    def generate_invite_token(self, user_profile, business):
         user = user_profile.user
         token_data = {
             "accountID": user.id,
