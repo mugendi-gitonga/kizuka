@@ -299,9 +299,6 @@ class InviteUserForm(forms.Form):
         cleaned_data = super().clean()
         phone_number = cleaned_data.get('phone_number')
         country = cleaned_data.get("country")
-        if phone_number and not phone_number.isdigit():
-            raise forms.ValidationError("Phone number must contain only digits.")
-
         phone_number = check_phone_number(phone_number, country=country)
         return phone_number
 
