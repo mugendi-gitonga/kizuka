@@ -983,7 +983,7 @@ def integrations_view(request):
 
 
 @login_required
-@require_business_role(allowed_roles=["admin", "staff"], name="dispatch")
+@require_business_role(allowed_roles=["admin", "staff"])
 def callbacks_list_view(request):
     """Get callbacks list (AJAX)"""
     try:
@@ -1111,7 +1111,7 @@ def callbacks_delete_view(request, callback_id):
 
 
 @login_required
-@require_business_role(allowed_roles=["admin", "staff"], name="dispatch")
+@require_business_role(allowed_roles=["admin", "staff"])
 def callback_logs_view(request, callback_id):
     """Get callback logs (AJAX)"""
     try:
@@ -1168,7 +1168,7 @@ def callback_logs_view(request, callback_id):
 
 
 @login_required
-@require_business_role(allowed_roles=["admin", "staff"], name="dispatch")
+@require_business_role(allowed_roles=["admin", "staff"])
 def callback_log_detail_view(request, log_id):
     """Get detailed callback log (AJAX)"""
     try:
@@ -1206,10 +1206,7 @@ def callback_log_detail_view(request, log_id):
 
 
 @login_required
-@method_decorator(
-    permission_required("callbacks.view_whitelistedip", raise_exception=True),
-    name="dispatch",
-)
+@require_business_role(allowed_roles=["admin", "staff"])
 def whitelist_ips_view(request):
     """Get whitelisted IPs (AJAX)"""
     try:
