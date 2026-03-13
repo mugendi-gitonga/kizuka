@@ -50,7 +50,7 @@ class PayoutSerializer(serializers.ModelSerializer):
         model = PayoutRequest
         # fields = "__all__"
         exclude = [
-            # "id",
+            "alias_id",
             "business",
             "tracking_id",
             "tracking_id_2",

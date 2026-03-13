@@ -55,12 +55,13 @@ class DepositSerializer(serializers.ModelSerializer):
         model = DepositRequest
         # fields = "__all__"
         exclude = [
+            "alias_id",
             "business",
             "tracking_id",
             "init_response",
             "stk_response",
             "callback_response",
         ]
-    
+
     def get_id(self, obj):
         return obj.alias
