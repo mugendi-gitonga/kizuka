@@ -887,7 +887,7 @@ def business_api_key_view(request):
 def regenerate_api_key_view(request):
     """Regenerate business API key - admin only (AJAX endpoint)"""
     try:
-        business = Business.objects.get(id=business.id)
+        business = Business.objects.get(id=request.business.id)
         if not business:
             return JsonResponse({
                 'success': False,

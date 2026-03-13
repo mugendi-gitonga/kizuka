@@ -42,6 +42,7 @@ class PayoutCallbackSerializer(serializers.ModelSerializer):
             "amount",
             "charge",
             "taxes",
+            "total_amount",
             "phone_number",
             "status",
             "message",
