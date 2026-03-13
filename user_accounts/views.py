@@ -887,42 +887,40 @@ def business_api_key_view(request):
 def regenerate_api_key_view(request):
     """Regenerate business API key - admin only (AJAX endpoint)"""
     try:
-        business = request.business
+        business = Business.objects.get(id=business.id)
         if not business:
             return JsonResponse({
                 'success': False,
                 'error': 'No business selected'
             }, status=400)
-        
+
         # Get team member to verify admin status
         team_member = BusinessTeamMember.objects.get(
             business=business,
             user=request.user
         )
-        
+
         # Only allow admin or business owner
         if team_member.role != 'admin' and business.owner != request.user:
             return JsonResponse({
                 'success': False,
                 'error': 'Only admins can regenerate API keys'
             }, status=403)
-        
+
         from utils import secret_key_generator
-        
-        with db_transaction.atomic():
-            key, key_encrypted = secret_key_generator()
-            business.api_key = key_encrypted
-            business.save()
-            
-            logger.info(f"API key regenerated for business {business.id} by user {request.user.id}")
-        
+        key, key_encrypted = secret_key_generator()
+        business.api_key = key_encrypted
+        business.save()
+
+        logger.info(f"API key regenerated for business {business.id} by user {request.user.id}")
+
         # Return the decrypted key
         return JsonResponse({
             'success': True,
             'message': 'API key regenerated successfully',
             'api_key': key  # This is the plain key returned from secret_key_generator
         })
-    
+
     except BusinessTeamMember.DoesNotExist:
         return JsonResponse({
             'success': False,
