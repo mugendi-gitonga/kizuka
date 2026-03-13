@@ -1,5 +1,6 @@
 import logging
 
+from django.core.cache import cache
 from django.shortcuts import get_object_or_404
 from rest_framework import views, viewsets
 from rest_framework.response import Response
@@ -26,9 +27,10 @@ class PayoutInitView(views.APIView):
     def post(self, request, *args, **kwargs):
         from payouts.tasks import process_payout_request
         try:
+            business = request.business
             ip = get_client_ip(request)
-            whitelist = WhitelistedIP.objects.filter(ip_address=ip).exists()
-            if not whitelist:
+            whitelist = cache.get(f"whitelist_{business.id}")
+            if whitelist and ip not in whitelist:
                 return Response({"error": "Unauthorized IP"}, status=403)
 
             serializer = PayoutInitSerializer(data=request.data)
