@@ -149,8 +149,8 @@
                                 <span class="text-slate-400">-</span>
                             {% endif %}
                         </td> -->
-                        <td class="px-6 py-4 text-sm font-medium text-blue-600">{{ deposit.reference }}</td>
-                        <td class="px-6 py-4 text-sm font-medium text-blue-600">{{ deposit.provider_reference }}</td>
+                        <td class="px-6 py-4 text-sm font-medium text-blue-600">{{ deposit.reference|default:"-" }}</td>
+                        <td class="px-6 py-4 text-sm font-medium text-blue-600">{{ deposit.provider_reference|default:"-" }}</td>
                         <td class="px-6 py-4 text-sm text-slate-600">{{ deposit.provider }}</td>
                         <td class="px-6 py-4 text-sm">
                             {% if deposit.status == 'PENDING' %}
@@ -165,7 +165,7 @@
                                 <span class="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-medium">{{ deposit.status }}</span>
                             {% endif %}
                         </td>
-                        <td class="px-6 py-4 text-sm text-slate-600">{{ deposit.created_at|date:"M d, Y" }}</td>
+                        <td class="px-6 py-4 text-sm text-slate-600">{{ deposit.created_at|date:"M d, Y H:i:s" }}</td>
                         <td class="px-6 py-4 text-sm">
                             <button 
                                 onclick="openDepositModal(this)" 
