@@ -63,4 +63,4 @@ class PayoutSerializer(serializers.ModelSerializer):
         return obj.alias
 
     def get_total_amount(self, obj):
-        return obj.total_amount
+        return str(obj.total_amount)
