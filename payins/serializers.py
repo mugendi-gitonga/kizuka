@@ -52,7 +52,7 @@ class DepositInitSerializer(serializers.ModelSerializer):
 class DepositSerializer(serializers.ModelSerializer):
     class Meta:
         model = DepositRequest
-        fields = "__all__"
+        # fields = "__all__"
         exclude = [
             "id",
             "business",

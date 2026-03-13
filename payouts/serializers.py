@@ -47,7 +47,7 @@ class PayoutInitSerializer(serializers.ModelSerializer):
 class PayoutSerializer(serializers.ModelSerializer):
     class Meta:
         model = PayoutRequest
-        fields = "__all__"
+        # fields = "__all__"
         exclude = [
             "id",
             "business",
