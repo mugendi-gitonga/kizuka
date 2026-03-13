@@ -3,6 +3,7 @@ import logging
 import json
 
 from django.core.cache import cache
+from django.core.exceptions import PermissionDenied, SuspiciousOperation
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.models import User
@@ -848,17 +849,17 @@ def business_api_key_view(request):
         business = request.business
         if not business:
             return redirect("dashboard_overview")
-        
+
         # Get team member to verify admin status
         team_member = BusinessTeamMember.objects.get(
             business=business,
             user=request.user
         )
-        
+
         # Only allow admin or business owner
         if team_member.role != 'admin' and business.owner != request.user:
             return render(request, '403.html', status=403)
-        
+
         # Decrypt the API key
         from utils import decrypt
         try:
@@ -866,14 +867,14 @@ def business_api_key_view(request):
         except Exception as e:
             logger.error(f"Error decrypting API key: {str(e)}")
             decrypted_api_key = None
-        
+
         context = {
             'business': business,
             'api_key': decrypted_api_key,
         }
-        
+
         return render(request, 'dashboard/api_key.html', context)
-    
+
     except BusinessTeamMember.DoesNotExist:
         return redirect("dashboard_overview")
     except Exception as e:
@@ -885,53 +886,55 @@ def business_api_key_view(request):
 @business_admin_required
 @require_http_methods(["POST"])
 def regenerate_api_key_view(request):
-    """Regenerate business API key - admin only (AJAX endpoint)"""
     try:
-        business = Business.objects.get(id=request.business.id)
-        if not business:
-            return JsonResponse({
-                'success': False,
-                'error': 'No business selected'
-            }, status=400)
+        # 1. Use select_for_update() within a transaction to lock the row
+        with db_transaction.atomic():
+            # Get fresh instance and lock it for this request
+            business = Business.objects.select_for_update().get(id=request.business.id)
 
-        # Get team member to verify admin status
-        team_member = BusinessTeamMember.objects.get(
-            business=business,
-            user=request.user
+            # 2. Check permissions (Optimized fetch)
+            team_member = BusinessTeamMember.objects.get(
+                business=business, user=request.user
+            )
+
+            if team_member.role != "admin" and business.owner != request.user:
+                return JsonResponse(
+                    {"success": False, "error": "Unauthorized"}, status=403
+                )
+
+            # 3. Generate and Save
+            from utils import secret_key_generator
+
+            key, key_encrypted = secret_key_generator()
+
+            business.api_key = key_encrypted
+            # Use update_fields to ensure ONLY the api_key is touched
+            business.save(update_fields=["api_key"])
+
+        # 4. Response (Outside the atomic block so we don't hold the DB lock longer than needed)
+        logger.info(
+            f"API key regenerated for business {business.id} by {request.user.id}"
         )
 
-        # Only allow admin or business owner
-        if team_member.role != 'admin' and business.owner != request.user:
-            return JsonResponse({
-                'success': False,
-                'error': 'Only admins can regenerate API keys'
-            }, status=403)
+        return JsonResponse(
+            {
+                "success": True,
+                "message": "API key regenerated successfully",
+                "api_key": key,
+            }
+        )
 
-        from utils import secret_key_generator
-        key, key_encrypted = secret_key_generator()
-        business.api_key = key_encrypted
-        business.save()
-
-        logger.info(f"API key regenerated for business {business.id} by user {request.user.id}")
-
-        # Return the decrypted key
-        return JsonResponse({
-            'success': True,
-            'message': 'API key regenerated successfully',
-            'api_key': key  # This is the plain key returned from secret_key_generator
-        })
-
+    except Business.DoesNotExist:
+        return JsonResponse(
+            {"success": False, "error": "Business not found"}, status=404
+        )
     except BusinessTeamMember.DoesNotExist:
-        return JsonResponse({
-            'success': False,
-            'error': 'Unauthorized'
-        }, status=403)
+        return JsonResponse({"success": False, "error": "Unauthorized"}, status=403)
     except Exception as e:
-        logger.error(f"Error regenerating API key: {str(e)}")
-        return JsonResponse({
-            'success': False,
-            'error': 'An error occurred'
-        }, status=500)
+        logger.error(f"Critical error in API key regen: {str(e)}")
+        return JsonResponse(
+            {"success": False, "error": "An internal error occurred"}, status=500
+        )
 
 
 @login_required
@@ -978,10 +981,10 @@ def integrations_view(request):
         return render(request, 'dashboard/integrations.html', context)
     
     except BusinessTeamMember.DoesNotExist:
-        return redirect("dashboard_overview")
+        raise PermissionDenied("You do not have permission to access this page.")
     except Exception as e:
         logger.error(f"Error loading integrations: {str(e)}")
-        return redirect("dashboard_overview")
+        raise SuspiciousOperation("An error occurred while loading the integrations page.")
 
 
 @login_required
