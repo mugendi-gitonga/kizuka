@@ -45,14 +45,18 @@ class PayoutInitSerializer(serializers.ModelSerializer):
 
 
 class PayoutSerializer(serializers.ModelSerializer):
+    id = serializers.SerializerMethodField()
     class Meta:
         model = PayoutRequest
         # fields = "__all__"
         exclude = [
-            "id",
+            # "id",
             "business",
             "tracking_id",
             "tracking_id_2",
             "init_response",
             "callback_response",
         ]
+    
+    def get_id(self, obj):
+        return obj.alias

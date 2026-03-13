@@ -50,14 +50,17 @@ class DepositInitSerializer(serializers.ModelSerializer):
 
 
 class DepositSerializer(serializers.ModelSerializer):
+    id = serializers.SerializerMethodField()
     class Meta:
         model = DepositRequest
         # fields = "__all__"
         exclude = [
-            "id",
             "business",
             "tracking_id",
             "init_response",
             "stk_response",
             "callback_response",
         ]
+    
+    def get_id(self, obj):
+        return obj.alias
