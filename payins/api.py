@@ -20,7 +20,7 @@ class DepositInitView(views.APIView):
 
         serializer = DepositInitSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        deposit_request = serializer.save(business=request.user.business)
+        deposit_request = serializer.save(business=request.business)
         resp_data = DepositSerializer(deposit_request).data
         send_deposit_request_to_provider.apply_async(args=[deposit_request.id])
         return Response(resp_data)

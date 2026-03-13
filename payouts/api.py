@@ -37,7 +37,7 @@ class PayoutInitView(views.APIView):
             amount = serializer.validated_data.get("amount")
             currency = serializer.validated_data.get("currency")
             country = serializer.validated_data.get("country")
-            business = request.user.business
+            business = request.business
             wallet = Wallet.objects.filter(business=business, currency=currency).first()
             if not wallet:
                 return Response({"error": f"No wallet found for currency {currency}"}, status=400)
