@@ -910,7 +910,10 @@ def regenerate_api_key_view(request):
             business.api_key = key_encrypted
             # Use update_fields to ensure ONLY the api_key is touched
             business.save(update_fields=["api_key"])
-
+            
+            cache_key = f"BIZ_{request.user.id}"
+            cache.delete(cache_key)
+            
         # 4. Response (Outside the atomic block so we don't hold the DB lock longer than needed)
         logger.info(
             f"API key regenerated for business {business.id} by {request.user.id}"
