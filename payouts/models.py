@@ -51,7 +51,8 @@ class PayoutRequest(AliasModel):
 
     @property
     def total_amount(self):
-        return self.amount + self.charge + self.taxes
+        total =  self.amount + self.charge + self.taxes
+        return total.quantize(Decimal("0.01"))
 
     def send(self):
         with db_transaction.atomic():
