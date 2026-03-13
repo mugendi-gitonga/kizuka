@@ -58,7 +58,7 @@ class PayoutInitView(views.APIView):
             serializer.validated_data["charge"] = charge
             serializer.validated_data["taxes"] = taxes
 
-            payout_request = serializer.save(business=request.user.business)
+            payout_request = serializer.save(business=request.business)
             resp_data = PayoutSerializer(payout_request).data
             process_payout_request.apply_async(args=[payout_request.id], countdown=3)
             return Response(resp_data)
