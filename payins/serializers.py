@@ -61,6 +61,7 @@ class DepositSerializer(serializers.ModelSerializer):
             "init_response",
             "stk_response",
             "callback_response",
+            "wallet_credited",
         ]
 
     def get_id(self, obj):

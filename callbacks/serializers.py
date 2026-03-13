@@ -5,11 +5,11 @@ from payouts.models import PayoutRequest
 
 
 class DepositCallbackSerializer(serializers.ModelSerializer):
-
+    id = serializers.SerializerMethodField()
     class Meta:
         model = DepositRequest
         fields = [
-            "alias_id",
+            "id",
             "currency",
             "amount",
             "charge",
@@ -25,19 +25,23 @@ class DepositCallbackSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
+    
+    def get_id(self, obj):
+        return obj.alias
 
 
 class PayoutCallbackSerializer(serializers.ModelSerializer):
+    id = serializers.SerializerMethodField()
+    total_amount = serializers.SerializerMethodField()
 
     class Meta:
         model = PayoutRequest
         fields = [
-            "alias_id",
+            "id",
             "currency",
             "amount",
             "charge",
             "taxes",
-            "total_amount",
             "phone_number",
             "status",
             "message",
@@ -48,3 +52,9 @@ class PayoutCallbackSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
+    
+    def get_id(self, obj):
+        return obj.alias
+    
+    def get_total_amount(self, obj):
+        return obj.total_amount

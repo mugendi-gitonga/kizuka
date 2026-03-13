@@ -46,6 +46,7 @@ class PayoutInitSerializer(serializers.ModelSerializer):
 
 class PayoutSerializer(serializers.ModelSerializer):
     id = serializers.SerializerMethodField()
+    total_amount = serializers.SerializerMethodField()
     class Meta:
         model = PayoutRequest
         # fields = "__all__"
@@ -57,6 +58,9 @@ class PayoutSerializer(serializers.ModelSerializer):
             "init_response",
             "callback_response",
         ]
-    
+
     def get_id(self, obj):
         return obj.alias
+
+    def get_total_amount(self, obj):
+        return obj.total_amount
