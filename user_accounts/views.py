@@ -912,7 +912,7 @@ def regenerate_api_key_view(request):
         with db_transaction.atomic():
             key, key_encrypted = secret_key_generator()
             business.api_key = key_encrypted
-            business.save(update_fields=['api_key'])
+            business.save()
             
             logger.info(f"API key regenerated for business {business.id} by user {request.user.id}")
         
