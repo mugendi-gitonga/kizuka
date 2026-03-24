@@ -1,6 +1,7 @@
 import logging
 
 from django.core.cache import cache
+from rest_framework.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
 from rest_framework import views, viewsets
 from rest_framework.response import Response
@@ -63,6 +64,11 @@ class PayoutInitView(views.APIView):
             process_payout_request.apply_async(args=[payout_request.id], countdown=3)
             return Response(resp_data)
 
+        except ValidationError as ve:
+            # ve.detail contains the dictionary of field errors
+            logger.error(f"Validation error in PayoutInitView: {ve.detail}")
+            return Response(ve.detail, status=400)
+        
         except Exception as e:
             logger.error(f"Error in PayoutInitView: {str(e)}", exc_info=True)
             return Response({"error": "An error occurred. Contact support."}, status=400)

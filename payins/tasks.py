@@ -3,12 +3,13 @@ from decimal import Decimal
 
 from callbacks.tasks import send_callback_notification
 from core.celery import app
+from lock import TaskWithLock
 from pricing.models import BusinessPricingPlan, CountryTax
 
 logger = logging.getLogger(__name__)
 
 
-@app.task(name="send_deposit_request_to_provider", queue="deposits", retries=0, time_limit=60)
+@app.task(base=TaskWithLock, name="send_deposit_request_to_provider", queue="deposits", retries=0, time_limit=60)
 def send_deposit_request_to_provider(deposit_request_id):
     from .models import DepositRequest
     try:
@@ -21,7 +22,7 @@ def send_deposit_request_to_provider(deposit_request_id):
         raise e
 
 
-@app.task(name="process_mpesa_c2b_callback", queue="deposits_results")
+@app.task(base=TaskWithLock, name="process_mpesa_c2b_callback", queue="deposits_results")
 def process_mpesa_c2b_callback(is_stk, payload):
     from payins.models import DepositRequest
     try:

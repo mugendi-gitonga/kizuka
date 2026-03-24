@@ -133,16 +133,34 @@ CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'redis://localho
 REDIS_URL= os.environ.get("REDIS_URL", "redis://localhost:6379/1")
 
 CACHES = {
-    'default': {
+    "default": {
         # 'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
         # 'LOCATION': os.path.join(BASE_DIR, 'cache'),
         "BACKEND": "django_redis.cache.RedisCache",
         "LOCATION": REDIS_URL,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
-        }
-    }
+            "SOCKET_KEEPALIVE": True,
+            "SOCKET_TIMEOUT": 5,
+        },
+    },
+    "locks": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": os.environ.get(
+            "REDIS_LOCK_URL", os.environ.get("REDIS_URL", "redis://127.0.0.1:6379/1")
+        ),
+        "OPTIONS": {
+            "CONNECTION_POOL_KWARGS": {
+                "max_connections": int(
+                    os.environ.get("REDIS_LOCK_MAX_CONNECTIONS", 50)
+                ),
+            }
+        },
+    },
 }
+
+CELERY_TASK_LOCK_CACHE = "locks"
+CELERY_TASK_LOCK_EXPIRY = int(os.environ.get("CELERY_TASK_LOCK_EXPIRY", 60 * 30))
 
 LOGIN_URL = "/"
 

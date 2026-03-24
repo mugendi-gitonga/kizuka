@@ -4,12 +4,13 @@ from decimal import Decimal
 from django.db.models import Q
 
 from core.celery import app
+from lock import TaskWithLock
 from payouts.models import PayoutRequest
 
 logger = logging.getLogger(__name__)
 
 
-@app.task(name="process_payout_request", queue="payouts", retries=0, time_limit=300)
+@app.task(base=TaskWithLock, name="process_payout_request", queue="payouts", retries=0, time_limit=300)
 def process_payout_request(payout_request_id):
     try:
         payout_request = PayoutRequest.objects.get(id=payout_request_id)
@@ -23,7 +24,6 @@ def process_payout_request(payout_request_id):
 
 @app.task(name="process_mpesa_payout_callback", queue="payout_results")
 def process_mpesa_payout_callback(payload):
-
     try:
         result = payload.get("Result")
         if not result:
