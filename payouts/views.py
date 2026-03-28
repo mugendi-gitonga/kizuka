@@ -103,7 +103,7 @@ def create_payout_request(request):
                 'error': 'Unable to calculate charges. Please contact support.'
             }, status=400)
         
-        taxes = CountryTax.compute_tax(country=country, amount=charge)
+        taxes = CountryTax.compute_tax(country=country, amount=amount)
         total_amount = amount + charge + taxes
         
         # Check if wallet has sufficient balance
