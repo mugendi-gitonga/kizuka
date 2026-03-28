@@ -51,7 +51,7 @@ def process_mpesa_payout_callback(payload):
             payout_req.close_on_failure()
             return
 
-        payout_req.status = "COMPLETED"
+        payout_req.status = "SUCCESS"
         payout_req.save()
         payout_req.complete()
 
