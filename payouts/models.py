@@ -57,7 +57,10 @@ class PayoutRequest(AliasModel):
     def send(self):
         with db_transaction.atomic():
             wallet = Wallet.objects.select_for_update().get(business=self.business, currency=self.currency)
-            tx = wallet.debit(Decimal(self.total_amount), reference=f"PAY_{self.alias}", trans_type="PAYOUT", description=f"Payout for {self.alias}")
+            tx = wallet.debit(Decimal(self.amount), reference=f"PAY_{self.alias}", trans_type="PAYOUT", description=f"Payout for {self.alias}")
+            fee = wallet.debit(self.charge, reference=f"PAY-FEE-{self.alias}", trans_type="FEE", description=f"Charge of {self.charge} for payout PAY-{self.alias}")
+            if self.taxes:
+                wallet.debit(self.taxes, reference=f"PAY-TAX-{self.alias}", trans_type="TAX", description=f"Tax of {self.taxes} for payout PAY-{self.alias}")
             try:
                 if self.provider == "MPESA-B2C":
                     from .processors import MpesaB2CProcessor

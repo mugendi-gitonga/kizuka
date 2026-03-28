@@ -1,6 +1,6 @@
 import logging
 
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, ROUND_UP, Decimal
 
 from django.db import models
 
@@ -80,11 +80,12 @@ class BusinessPricingPlan(models.Model):
             if subscription.plan.tarrif_type == "PERCENTAGE":
                 charge = subscription.plan.charges.filter(min_amount__lte=amount, max_amount__gte=amount).first()
                 if charge:
-                    return charge.charge if not charge.is_percentage else Decimal((charge.charge / 100) * amount)
+                    return charge.charge if not charge.is_percentage else Decimal((charge.charge / 100) * amount).quantize(Decimal("0.01"), rounding=ROUND_UP)
             elif subscription.plan.tarrif_type == "TIERED":
                 charge = subscription.plan.charges.filter(min_amount__lte=amount, max_amount__gte=amount).first()
                 if charge:
-                    return Decimal(charge.charge)
+                    result = Decimal(charge.charge)
+                    return result.quantize(Decimal("0.01"), rounding=ROUND_UP)
             return 0
         except Exception as e:
             logger.error(f"Error calculating charge for business {business.id} and provider {provider}: {str(e)}", exc_info=True)
@@ -112,7 +113,8 @@ class CountryTax(models.Model):
         try:
             tax = cls.objects.filter(country=country).first()
             if tax:
-                return Decimal((tax.tax_percentage / 100) * amount)
+                result = Decimal((tax.tax_percentage / 100) * amount)
+                return result.quantize(Decimal("0.01"), rounding=ROUND_UP)
             return Decimal(0)
         except Exception as e:
             logger.error(f"Error computing tax for country {country} and amount {amount}: {str(e)}", exc_info=True)
