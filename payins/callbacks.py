@@ -13,6 +13,7 @@ from rest_framework.decorators import (
     authentication_classes,
 )
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from drf_spectacular.utils import extend_schema
 
 
 from .tasks import process_mpesa_c2b_callback
@@ -21,6 +22,10 @@ from .tasks import process_mpesa_c2b_callback
 logger = logging.getLogger(__name__)
 
 
+# These are inbound Safaricom-facing webhook receivers, not partner-callable
+# endpoints - excluded from the generated API docs so they don't show up
+# alongside the actual partner API surface.
+@extend_schema(exclude=True)
 @api_view(http_method_names=["POST", "GET"])
 @permission_classes((AllowAny,))
 def mpesa_stk_callback_url(request):
@@ -37,6 +42,7 @@ def mpesa_stk_callback_url(request):
         )
 
 
+@extend_schema(exclude=True)
 @api_view(http_method_names=["POST", "GET"])
 @permission_classes((AllowAny,))
 def mpesa_c2b_callback_url(request):

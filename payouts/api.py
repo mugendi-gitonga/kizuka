@@ -8,6 +8,7 @@ from rest_framework.response import Response
 
 from authentications import APITokenAuthentication
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from drf_spectacular.utils import extend_schema
 
 from payouts.models import PayoutRequest
 from payouts.serializers import PayoutSerializer, PayoutInitSerializer
@@ -24,8 +25,12 @@ logger = logging.getLogger(__name__)
 class PayoutInitView(views.APIView):
 
     authentication_classes = [APITokenAuthentication]
-    permission_classes = []
+    permission_classes = [IsAuthenticated]
 
+    # PayoutInitSerializer is only used for manual validation inside post() below,
+    # which drf_spectacular can't see - without this, the docs show no request body
+    # at all for this endpoint.
+    @extend_schema(request=PayoutInitSerializer, responses=PayoutSerializer)
     def post(self, request, *args, **kwargs):
         from payouts.tasks import process_payout_request
         try:

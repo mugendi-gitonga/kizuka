@@ -8,6 +8,7 @@ from rest_framework.response import Response
 
 from authentications import APITokenAuthentication
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from drf_spectacular.utils import extend_schema
 
 from exceptions import UserAdviceException
 from payins.models import DepositRequest
@@ -22,6 +23,10 @@ class DepositInitView(views.APIView):
     authentication_classes = [APITokenAuthentication]
     permission_classes = [IsAuthenticated]
 
+    # DepositInitSerializer is only used for manual validation inside post() below,
+    # which drf_spectacular can't see - without this, the docs show no request body
+    # at all for this endpoint.
+    @extend_schema(request=DepositInitSerializer, responses=DepositSerializer)
     def post(self, request, *args, **kwargs):
         from payins.tasks import send_deposit_request_to_provider
         try:

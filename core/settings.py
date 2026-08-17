@@ -175,7 +175,7 @@ CACHES = {
 CELERY_TASK_LOCK_CACHE = "locks"
 CELERY_TASK_LOCK_EXPIRY = int(os.environ.get("CELERY_TASK_LOCK_EXPIRY", 60 * 30))
 
-LOGIN_URL = "/"
+LOGIN_URL = "/login/"
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -275,16 +275,13 @@ SPECTACULAR_SETTINGS = {
     "DESCRIPTION": "Kizuka Core APIs Documentation",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
-    "SECURITY_DEFINITIONS": {
-        "BearerAuth": {
-            "type": "http",
-            "scheme": "bearer",
-            "description": "Bearer token authentication using a secret key.",
-        },
-    },
-    "SECURITY": [
-        {"BearerAuth": []},
-    ],
+    # The BearerAuth scheme itself is now provided by APITokenAuthenticationScheme
+    # (authentications.py), a proper OpenApiAuthenticationExtension - it's derived
+    # automatically per-view from authentication_classes. The SECURITY_DEFINITIONS/
+    # SECURITY keys used to live here, but drf_spectacular doesn't recognize either
+    # key (they're a drf_yasg-ism), so they silently did nothing on their own; once
+    # the extension started working, redeclaring "BearerAuth" here just duplicated
+    # the same requirement on every endpoint.
 }
 
 # JWT SETTINGS

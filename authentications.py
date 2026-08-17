@@ -61,3 +61,23 @@ class APITokenAuthentication(authentication.BaseAuthentication):
         if not user.is_active:
             raise exceptions.AuthenticationFailed("User inactive or deleted")
         return (user, business)
+
+
+from drf_spectacular.extensions import OpenApiAuthenticationExtension
+from drf_spectacular.plumbing import build_bearer_security_scheme_object
+
+
+class APITokenAuthenticationScheme(OpenApiAuthenticationExtension):
+    """Tells drf_spectacular how to document APITokenAuthentication - without this,
+    it silently drops the auth requirement from every endpoint that uses it, since it
+    doesn't recognize the class and has no built-in Bearer/API-key scheme for it."""
+
+    target_class = "authentications.APITokenAuthentication"
+    name = "BearerAuth"
+
+    def get_security_definition(self, auto_schema):
+        return build_bearer_security_scheme_object(
+            header_name="Authorization",
+            token_prefix="Bearer",
+            bearer_format="tokenLive... / tokenTest...",
+        )
