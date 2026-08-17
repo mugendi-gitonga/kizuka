@@ -1,0 +1,21 @@
+{% extends "auth/auth_base.html" %}
+
+{% block content %}
+    <div class="flex items-center justify-center p-4">
+        <div class="w-full max-w-md md:max-w-md lg:max-w-lg">
+            <div class="bg-white rounded-lg shadow-lg px-4 py-8 text-center">
+                <h1 class="text-3xl font-bold text-slate-900 mb-2">Kizuka</h1>
+                <p class="text-slate-600 text-sm mb-6">Secure Financial Portal</p>
+
+                <div class="alert bg-slate-100 border border-slate-200 rounded-lg p-4 mb-6">
+                    <p class="text-sm text-slate-700">
+                        Self-service sign-up is currently disabled. Accounts are provisioned
+                        by our team &mdash; contact support to get set up.
+                    </p>
+                </div>
+
+                <a href="{% url 'login' %}" class="btn btn-primary w-full">Back to Sign In</a>
+            </div>
+        </div>
+    </div>
+{% endblock %}

@@ -176,22 +176,12 @@ def force_password_change_view(request):
 
 
 def signup_view(request):
-    form = SignUpForm(request.POST or None)
-    try:
-        if request.user.is_authenticated:
-            return redirect("dashboard_overview")
-        if request.method == 'POST':
-            if form.is_valid():
-                form.save()
-                user = authenticate(username=form.cleaned_data['email'], password=form.cleaned_data['password'])
-                if user is not None:
-                    login(request, user)
-                    return redirect("dashboard_overview")
-    except Exception as e:
-        logger.error(f"Signup error: {str(e)}")
-        form.add_error(None, "An error occurred during signup. Please try again.")
-
-    return render(request, "auth/signup.html", {"form": form, "countries": COUNTRIES})
+    # Self-service signup is disabled - accounts are provisioned by staff via
+    # admin_create_business_view instead. Kept as a view (rather than removed)
+    # so re-enabling later is a one-line revert, not a rebuild.
+    if request.user.is_authenticated:
+        return redirect("dashboard_overview")
+    return render(request, "auth/signup_disabled.html")
 
 
 @staff_member_required
@@ -692,6 +682,7 @@ def users_list_view(request):
             'users': users_data,
             'page_obj': page_obj,
             'total_users': paginator.count,
+            'active_users_count': team_members.filter(is_active=True).count(),
         }
 
         return render(request, 'dashboard/users.html', context)
@@ -763,15 +754,19 @@ def users_add_edit_view(request):
                 }
             })
         elif mode == "edit":
-            if request.user == business.owner:
-                return JsonResponse({
-                    'success': False,
-                    'error': 'Business owner role cannot be changed'
-                }, status=400)
             try:
                 member = BusinessTeamMember.objects.get(
                     user__email=email, business=business
                 )
+                # The bug this replaces checked request.user (the actor) against
+                # business.owner, which blocked the owner from editing ANYONE's role
+                # and let any other admin change the owner's own role. The check must
+                # be on the target being edited, not on who's making the request.
+                if member.user == business.owner:
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'Business owner role cannot be changed'
+                    }, status=400)
                 member.role = role
                 member.save(update_fields=['role'])
                 return JsonResponse({

@@ -29,7 +29,7 @@
         </div>
         <div class="bg-white rounded-lg shadow p-6 border-l-4 border-green-600">
             <p class="text-slate-600 text-sm font-medium">Active Members</p>
-            <p class="text-3xl font-bold text-slate-900 mt-2">{{ users|length }}</p>
+            <p id="activeMembersCount" class="text-3xl font-bold text-slate-900 mt-2">{{ active_users_count }}</p>
         </div>
         <div class="bg-white rounded-lg shadow p-6 border-l-4 border-purple-600">
             <p class="text-slate-600 text-sm font-medium">Organization</p>
@@ -66,9 +66,7 @@
                         </td>
                         <td class="px-6 py-4 text-slate-600">
                             {{ user.email }} <br>
-                            {% if not user.is_active and not user.archived %}
-                            <span class="text-xs text-blue-600 hover:underline cursor-pointer" onclick="inviteUser('{{ user.alias_id }}')">resend invite</span>
-                            {% endif %}
+                            <span class="resend-invite-link text-xs text-blue-600 hover:underline cursor-pointer {% if user.is_active or user.archived %}hidden{% endif %}" onclick="inviteUser('{{ user.alias_id }}')">resend invite</span>
                         </td>
                         <td class="px-6 py-4">
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if user.role == 'admin' %}bg-purple-100 text-purple-800{% else %}bg-blue-100 text-blue-800{% endif %}">
@@ -273,7 +271,9 @@ const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
 
 // Open Add User Modal
 function openAddUserModal() {
+    modalMode = 'add';
     document.getElementById('modalTitle').textContent = 'Add Team Member';
+    document.getElementById('saveBtn').textContent = 'Add Member';
     document.getElementById('userForm').reset();
     clearErrors();
     document.getElementById('userModal').classList.remove('hidden');
@@ -283,6 +283,7 @@ function openAddUserModal() {
 function openEditUserModal(userId, email, role) {
     modalMode = 'edit';
     document.getElementById('modalTitle').textContent = 'Edit Team Member Role';
+    document.getElementById('saveBtn').textContent = 'Save Changes';
     document.getElementById('email').value = email;
     document.getElementById('email').disabled = true;
     document.getElementById('role').value = role;
@@ -294,6 +295,7 @@ function openEditUserModal(userId, email, role) {
 function closeUserModal() {
     document.getElementById('userModal').classList.add('hidden');
     document.getElementById('email').disabled = false;
+    document.getElementById('saveBtn').textContent = 'Add Member';
 }
 
 // Close Delete Modal
@@ -433,16 +435,28 @@ async function toggleUserStatus(userId, isActive) {
         }
         
         showNotification(data.message);
-        
-        // Update the UI without full reload
+
+        // Update the UI without full reload - only touch the text span, not the
+        // whole <label> (that also contains the checkbox input and its slider div;
+        // overwriting the label's innerHTML wiped both out, permanently disabling
+        // the toggle after its first use).
         const row = document.querySelector(`tr[data-user-id="${userId}"]`);
         if (row) {
-            const statusCell = row.querySelector('label');
-            if (statusCell) {
-                statusCell.innerHTML = isActive 
-                    ? '<span class="text-green-700">Active</span>' 
+            const textSpan = row.querySelector('label span.ml-3');
+            if (textSpan) {
+                textSpan.innerHTML = isActive
+                    ? '<span class="text-green-700">Active</span>'
                     : '<span class="text-slate-500">Inactive</span>';
             }
+            const resendLink = row.querySelector('.resend-invite-link');
+            if (resendLink) {
+                resendLink.classList.toggle('hidden', isActive);
+            }
+        }
+
+        const countEl = document.getElementById('activeMembersCount');
+        if (countEl) {
+            countEl.textContent = parseInt(countEl.textContent, 10) + (isActive ? 1 : -1);
         }
         
     } catch (error) {

@@ -1,4 +1,6 @@
 from django.contrib import admin
+from django.shortcuts import redirect
+from django.urls import reverse
 from .models import Business, UserProfile, PasswordResetLog, InviteUserLog
 
 @admin.register(PasswordResetLog)
@@ -37,3 +39,10 @@ class BusinessAdmin(admin.ModelAdmin):
     search_fields = ('name', 'owner__email')
     readonly_fields = ('created_at',)
     ordering = ('-created_at',)
+
+    def add_view(self, request, form_url='', extra_context=None):
+        # The bare add form only creates a Business row - it skips the owner
+        # User, pricing plan, wallet, account limits, and team-membership rows
+        # that a real business needs. Route staff through the full setup flow instead.
+        next_url = request.GET.get('next') or reverse('admin:user_accounts_business_changelist')
+        return redirect(f"{reverse('admin_create_business')}?next={next_url}")
