@@ -14,7 +14,8 @@ from payouts.serializers import PayoutSerializer, PayoutInitSerializer
 from payouts.tables import PayoutRequestFilter
 
 from callbacks.models import WhitelistedIP
-from pricing.models import BusinessPricingPlan, CountryTax
+from exceptions import UserAdviceException
+from pricing.models import BusinessPricingPlan, BusinessAccountLimits, CountryTax
 from utils import get_client_ip
 from wallet.models import Wallet
 
@@ -44,7 +45,14 @@ class PayoutInitView(views.APIView):
             wallet = Wallet.objects.filter(business=business, currency=currency).first()
             if not wallet:
                 return Response({"error": f"No wallet found for currency {currency}"}, status=400)
-            
+
+            try:
+                BusinessAccountLimits.can_disburse(business, amount, wallet)
+            except BusinessAccountLimits.DoesNotExist:
+                # No limit record configured for this business/currency yet (e.g. not
+                # seeded post-launch) - don't hard-block real traffic on missing config.
+                logger.warning(f"No BusinessAccountLimits configured for business {business.id} / {currency}; skipping limit check")
+
             # Get charges
             charges = BusinessPricingPlan.calculate_charge(business, "MPESA-B2C", amount, currency, country)
             charge = charges if charges else 0
@@ -68,7 +76,11 @@ class PayoutInitView(views.APIView):
             # ve.detail contains the dictionary of field errors
             logger.error(f"Validation error in PayoutInitView: {ve.detail}")
             return Response(ve.detail, status=400)
-        
+
+        except UserAdviceException as e:
+            logger.error(f"Account limit error in PayoutInitView: {e.detail}")
+            return Response({"error": str(e.detail)}, status=e.status_code)
+
         except Exception as e:
             logger.error(f"Error in PayoutInitView: {str(e)}", exc_info=True)
             return Response({"error": "An error occurred. Contact support."}, status=400)

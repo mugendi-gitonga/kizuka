@@ -5,7 +5,7 @@ import json
 from django.core.cache import cache
 from django.core.exceptions import PermissionDenied, SuspiciousOperation
 from django.shortcuts import render, redirect
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import authenticate, login, update_session_auth_hash
 from django.contrib.auth.models import User
 from django.conf import settings
 from django.utils import timezone
@@ -14,20 +14,37 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required, permission_required
+from django.contrib.admin.views.decorators import staff_member_required
 from django.core.paginator import Paginator
 
 from callbacks.models import BusinessCallback, CallbackLog, WhitelistedIP
 from user_accounts.decorators import business_admin_required, require_business_role
-from user_accounts.utils import hash_token, verify_token_hash
-from .forms import LoginForm, SignUpForm, AddTeamMemberForm, ForgotPasswordForm, ResetPasswordForm, InviteUserForm
+from user_accounts.utils import hash_token, verify_token_hash, generate_otp_code, hash_otp_code, verify_otp_code
+from .forms import LoginForm, SignUpForm, AddTeamMemberForm, ForgotPasswordForm, ResetPasswordForm, InviteUserForm, VerifyOTPForm, AdminCreateBusinessForm
 
 from constants import COUNTRIES
 from utils import decode_id, decode_jwt, encode_jwt, get_client_ip
 
-from user_accounts.models import Business, BusinessTeamMember, UserProfile, PasswordResetLog, InviteUserLog
-from user_accounts.tasks import send_existing_invitation_email, send_password_reset_email
+from user_accounts.models import Business, BusinessTeamMember, UserProfile, PasswordResetLog, InviteUserLog, LoginOTP
+from user_accounts.tasks import send_existing_invitation_email, send_password_reset_email, send_login_otp_email
 
 logger = logging.getLogger(__name__)
+
+
+def _issue_login_otp(request, user):
+    """Invalidate any outstanding codes, issue a fresh one, and email it to the user."""
+    LoginOTP.objects.filter(user=user, is_used=False).update(is_used=True)
+
+    code = generate_otp_code()
+    LoginOTP.objects.create(
+        user=user,
+        code_hash=hash_otp_code(code),
+        expires_at=timezone.now() + datetime.timedelta(minutes=LoginOTP.EXPIRY_MINUTES),
+        ip_address=get_client_ip(request),
+    )
+    send_login_otp_email.apply_async(args=[user.email, user.first_name, code])
+
+    request.session['pending_2fa_user_id'] = user.id
 
 
 def login_view(request):
@@ -39,15 +56,123 @@ def login_view(request):
         if request.method == 'POST':
             if form.is_valid():
                 user = form.cleaned_data['user']
-                login(request, user)
+                _issue_login_otp(request, user)
                 if next_url := request.GET.get('next'):
-                    return redirect(next_url)
-                return redirect("dashboard_overview")
+                    request.session['pending_2fa_next'] = next_url
+                return redirect("verify_login_otp")
     except Exception as e:
         logger.error(f"Login error: {str(e)}")
         form.add_error(None, "An error occurred during login. Please try again.")
 
-    return render(request, 'auth/login.html', {"form": form})
+    return render(request, 'auth/login.html', {
+        "form": form,
+        "session_expired": request.GET.get("expired") == "1",
+    })
+
+
+def verify_login_otp_view(request):
+    user_id = request.session.get('pending_2fa_user_id')
+    if not user_id:
+        return redirect("login")
+
+    try:
+        user = User.objects.get(id=user_id, is_active=True)
+    except User.DoesNotExist:
+        request.session.pop('pending_2fa_user_id', None)
+        request.session.pop('pending_2fa_next', None)
+        return redirect("login")
+
+    form = VerifyOTPForm(request.POST or None)
+    try:
+        if request.method == 'POST':
+            if form.is_valid():
+                code = form.cleaned_data['code']
+                otp = LoginOTP.objects.filter(user=user, is_used=False).order_by('-created_at').first()
+
+                if not otp or otp.is_expired():
+                    form.add_error(None, "This code has expired. Please request a new one.")
+                elif otp.is_locked():
+                    form.add_error(None, "Too many incorrect attempts. Please request a new code.")
+                elif not verify_otp_code(code, otp.code_hash):
+                    otp.attempts += 1
+                    otp.save(update_fields=['attempts'])
+                    form.add_error(None, "Incorrect code. Please try again.")
+                else:
+                    otp.is_used = True
+                    otp.save(update_fields=['is_used'])
+
+                    login(request, user)
+
+                    next_url = request.session.pop('pending_2fa_next', None)
+                    request.session.pop('pending_2fa_user_id', None)
+                    if next_url:
+                        return redirect(next_url)
+                    return redirect("dashboard_overview")
+    except Exception as e:
+        logger.error(f"OTP verification error: {str(e)}")
+        form.add_error(None, "An error occurred. Please try again.")
+
+    return render(request, 'auth/verify_login_otp.html', {"form": form, "email": user.email})
+
+
+@require_http_methods(["POST"])
+def resend_login_otp_view(request):
+    user_id = request.session.get('pending_2fa_user_id')
+    if not user_id:
+        return redirect("login")
+
+    try:
+        user = User.objects.get(id=user_id, is_active=True)
+    except User.DoesNotExist:
+        request.session.pop('pending_2fa_user_id', None)
+        request.session.pop('pending_2fa_next', None)
+        return redirect("login")
+
+    form = VerifyOTPForm()
+    info = None
+    error = None
+    last_otp = LoginOTP.objects.filter(user=user).order_by('-created_at').first()
+    if last_otp and (timezone.now() - last_otp.created_at).total_seconds() < LoginOTP.RESEND_COOLDOWN_SECONDS:
+        # form is unbound (no POST data), so form.add_error() would raise -
+        # add_error() requires cleaned_data, which full_clean() only sets on bound forms.
+        error = "Please wait a moment before requesting another code."
+    else:
+        _issue_login_otp(request, user)
+        info = "A new code has been sent to your email."
+
+    return render(request, 'auth/verify_login_otp.html', {"form": form, "email": user.email, "info": info, "error": error})
+
+
+def cancel_login_otp_view(request):
+    """Abandon a pending 2FA login and return to the sign-in form."""
+    request.session.pop('pending_2fa_user_id', None)
+    request.session.pop('pending_2fa_next', None)
+    return redirect("login")
+
+
+@login_required
+def force_password_change_view(request):
+    """Forces a user to set a new password, e.g. after receiving temporary credentials"""
+    profile = request.user.profile
+    if not profile.must_change_password:
+        return redirect("dashboard_overview")
+
+    form = ResetPasswordForm(request.POST or None)
+    if request.method == 'POST':
+        if form.is_valid():
+            request.user.set_password(form.cleaned_data['new_password1'])
+            request.user.save()
+
+            profile.must_change_password = False
+            profile.save(update_fields=['must_change_password'])
+
+            # Password change invalidates the session's auth hash - refresh it
+            # so the user isn't immediately logged out.
+            update_session_auth_hash(request, request.user)
+
+            return redirect('dashboard_overview')
+
+    return render(request, 'auth/force_password_change.html', {"form": form})
 
 
 def signup_view(request):
@@ -67,6 +192,29 @@ def signup_view(request):
         form.add_error(None, "An error occurred during signup. Please try again.")
 
     return render(request, "auth/signup.html", {"form": form, "countries": COUNTRIES})
+
+
+@staff_member_required
+def admin_create_business_view(request):
+    """Staff-only: onboard a new business/owner on the merchant's behalf, with a
+    system-generated temp password emailed to them (forced to change it on first login)."""
+    form = AdminCreateBusinessForm(request.POST or None)
+    created_user = None
+    try:
+        if request.method == 'POST':
+            if form.is_valid():
+                created_user, business = form.save()
+                logger.info(f"Staff-provisioned business '{business.name}' for {created_user.email}")
+                form = AdminCreateBusinessForm()
+    except Exception as e:
+        logger.error(f"Admin create business error: {str(e)}")
+        form.add_error(None, "An error occurred while provisioning this business. Please try again.")
+
+    return render(request, "auth/admin_create_business.html", {
+        "form": form,
+        "countries": COUNTRIES,
+        "created_user": created_user,
+    })
 
 
 def logout_view(request):

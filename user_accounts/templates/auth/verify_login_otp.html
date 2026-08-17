@@ -1,0 +1,89 @@
+{% extends "auth/auth_base.html" %}
+
+{% block content %}
+    <div class="flex items-center justify-center p-4">
+        <div class="w-full max-w-md md:max-w-md lg:max-w-lg">
+            <!-- Card Container -->
+            <div class="bg-white rounded-lg shadow-lg px-4 py-8">
+                <!-- Logo/Brand Section -->
+                <div class="text-center mb-8">
+                    <h1 class="text-3xl font-bold text-slate-900 mb-2">Kizuka</h1>
+                    <p class="text-slate-600 text-sm">We emailed a code to {{ email }}</p>
+                </div>
+
+                <!-- Info Notice -->
+                {% if info %}
+                    <div class="alert alert-success bg-emerald-50 border border-emerald-200 rounded-lg p-4 mb-5">
+                        <div class="text-sm text-emerald-700">
+                            <p>{{ info }}</p>
+                        </div>
+                    </div>
+                {% endif %}
+
+                {% if error %}
+                    <div class="alert alert-error bg-red-50 border border-red-200 rounded-lg p-4 mb-5">
+                        <div class="text-sm text-red-700">
+                            <p>{{ error }}</p>
+                        </div>
+                    </div>
+                {% endif %}
+
+                <!-- Verify OTP Form -->
+                <form method="post" action="{% url 'verify_login_otp' %}" class="space-y-5">
+                    {% csrf_token %}
+
+                    <!-- Display Form Errors -->
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-error bg-red-50 border border-red-200 rounded-lg p-4">
+                            <div class="text-sm text-red-700">
+                                {% for error in form.non_field_errors %}
+                                    <p>{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    <!-- Code Input -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-medium text-slate-700">Verification Code</span>
+                        </label>
+                        {{ form.code }}
+                        {% if form.code.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-xs text-red-600">{% for error in form.code.errors %}{{ error }}{% endfor %}</span>
+                            </label>
+                        {% endif %}
+                    </div>
+
+                    <!-- Verify Button -->
+                    <button type="submit" class="btn btn-block bg-blue-600 hover:bg-blue-700 border-0 text-white font-semibold mt-6">
+                        Verify &amp; Sign In
+                    </button>
+                </form>
+
+                <!-- Resend / Cancel -->
+                <form method="post" action="{% url 'resend_login_otp' %}" class="mt-4">
+                    {% csrf_token %}
+                    <button type="submit" class="w-full text-center text-blue-600 hover:text-blue-700 font-medium text-sm">
+                        Resend code
+                    </button>
+                </form>
+
+                <p class="text-center text-slate-600 text-sm mt-4">
+                    <a href="{% url 'cancel_login_otp' %}" class="text-slate-500 hover:text-slate-700">Use a different account</a>
+                </p>
+
+                <!-- Security Notice -->
+                <div class="mt-8 p-4 bg-slate-100 rounded-lg border border-slate-200">
+                    <p class="text-xs text-slate-600 text-center flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
+                        </svg>
+                        Your connection is secure and encrypted
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

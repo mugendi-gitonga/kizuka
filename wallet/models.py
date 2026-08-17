@@ -1,8 +1,11 @@
 import logging
+from datetime import datetime, time
+from decimal import Decimal
 
 from django.db import models
 from django.db import transaction as db_transaction
-from django.db.models import F
+from django.db.models import F, Sum
+from django.utils import timezone
 from dns.transaction import Transaction
 
 from common import AliasModel
@@ -79,6 +82,26 @@ class Wallet(AliasModel):
             )
             logger.info(f"Wallet debited with {amount}. New balance: {self.balance}. Transaction reference: {reference}")
             return tx
+
+    @property
+    def daily_payout(self):
+        """
+        Return total amount paid out today.
+        To be used in conjunction with limits guards.
+        """
+        today = timezone.localtime()
+        min_today_time = datetime.combine(today, time.min)
+        max_today_time = datetime.combine(today, time.max)
+        return abs(
+            self.transactions.filter(
+                trans_type="PAYOUT",
+                created_at__lte=max_today_time,
+                created_at__gte=min_today_time,
+            )
+            .aggregate(total=Sum("amount"))
+            .get("total")
+            or Decimal(0.0)
+        )
 
     @staticmethod
     def seed_wallets_for_business(business):

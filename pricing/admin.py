@@ -3,7 +3,11 @@ from .models import (
     PricingPlan,
     PricingCharge,
     BusinessPricingPlan,
-    CountryTax
+    CountryTax,
+    AccountLimits,
+    ProviderCostPlan,
+    ProviderCostTier,
+    TransactionMargin,
 )
 
 
@@ -38,4 +42,44 @@ class CountryTaxAdmin(admin.ModelAdmin):
     list_display = ("id", "country", "tax_percentage", "created_at")
     list_filter = ("country",)
     search_fields = ("country",)
+    ordering = ("-created_at",)
+
+
+class ProviderCostTierInline(admin.TabularInline):
+    model = ProviderCostTier
+    extra = 1
+    min_num = 0
+    verbose_name = "Cost Tier"
+    verbose_name_plural = "Cost Tiers"
+
+
+@admin.register(ProviderCostPlan)
+class ProviderCostPlanAdmin(admin.ModelAdmin):
+    list_display = ("id", "provider", "currency", "country", "is_free", "updated_at")
+    list_filter = ("provider", "currency", "country", "is_free")
+    ordering = ("provider",)
+    inlines = [ProviderCostTierInline]
+
+
+@admin.register(TransactionMargin)
+class TransactionMarginAdmin(admin.ModelAdmin):
+    list_display = ("id", "event_type", "business", "provider", "amount", "revenue", "provider_cost", "margin", "created_at")
+    list_filter = ("event_type", "provider", "currency")
+    search_fields = ("business__name",)
+    ordering = ("-created_at",)
+    date_hierarchy = "created_at"
+
+
+@admin.register(AccountLimits)
+class AccountLimitsAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "label",
+        "currency",
+        "collection_amount_per_txn",
+        "disbursement_amount_per_txn",
+        "disbursement_amount_per_day",
+    )
+    list_filter = ("currency",)
+    search_fields = ("currency",)
     ordering = ("-created_at",)

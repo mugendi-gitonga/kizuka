@@ -1,0 +1,17 @@
+{
+  "name": "kizukapay",
+  "version": "1.0.0",
+  "description": "KizukaPay Landing Page and Dashboard",
+  "scripts": {
+    "tailwind": "tailwindcss -i ./landing/static/css/input.css -o ./landing/static/css/output.css",
+    "tailwind:watch": "tailwindcss -i ./landing/static/css/input.css -o ./landing/static/css/output.css --watch"
+  },
+  "dependencies": {
+    "tailwindcss": "^3.3.0",
+    "daisyui": "^3.9.0"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.14",
+    "postcss": "^8.4.24"
+  }
+}

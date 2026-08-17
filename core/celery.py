@@ -42,4 +42,9 @@ app.conf.update(
 if os.environ.get("CELERY_RESULT_BACKEND"):
     app.conf.result_backend = os.environ.get("CELERY_RESULT_BACKEND")
 
-app.conf.beat_schedule = {}
+app.conf.beat_schedule = {
+    "query-pending-payouts": {
+        "task": "query_pending_payouts",
+        "schedule": 60.0,
+    },
+}

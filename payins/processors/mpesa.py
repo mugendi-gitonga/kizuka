@@ -77,13 +77,12 @@ class MpesaC2BProcessor():
                 ),
                 "PhoneNumber": phone_number,
                 "CallBackURL": f'{settings.APP_URL}/api/v1/callback/mpesa/stk/',
-                "AccountReference": reference,
+                "AccountReference": f"STK-{reference}",
                 "TransactionDesc": description if description else f"for {reference}",
             }
             # return payload
             url = f"{settings.MPESA_BASE_API_URL}/mpesa/stkpush/v1/processrequest"
             resp = requests.post(url, json=payload, headers=headers)
-            print(resp.text)
             json_resp = resp.json()
             return resp.status_code, json_resp
         except requests.exceptions.ReadTimeout as ex:
@@ -113,7 +112,6 @@ class MpesaC2BProcessor():
 
         resp = requests.post(url, json=payload, headers=headers)
         json_resp = resp.json()
-        print(json_resp)
         return json_resp
 
     def validate_phone_number(self, phone_number):
@@ -126,3 +124,39 @@ class MpesaC2BProcessor():
             return phone_number
         else:
             raise ValueError("Invalid phone number format")
+
+    def register_callback_url(self):
+        """
+        Send MPesa Request to register callback URL
+        """
+        try:
+
+            url = f"{settings.MPESA_BASE_API_URL}/mpesa/c2b/v2/registerurl"
+            token = self.get_mpesa_token()
+            headers = {"Authorization": f"Bearer {token}"}
+
+            payload = {
+                "ShortCode": settings.MPESA_SHORTCODE,
+                "ResponseType": "Completed",
+                "ConfirmationURL": "https://app.kulmipay.com/api/v1/callback/paybill/c2b/callback_url/",
+                "ValidationURL": "https://app.kulmipay.com/api/v1/callback/paybill/c2b/validation_url/",
+            }
+
+            # Make request
+            resp = requests.post(
+                url,
+                json=payload,
+                headers=headers,
+                timeout=30,
+            )
+            if not resp.status_code == 200:
+                logger.error(
+                    f"Failed to register callback URL for: {resp.text}"
+                )
+            else:
+                logger.info(
+                    f"Successfully registered callback URL."
+                )
+
+        except Exception as ex:
+            logger.error(ex, exc_info=True)

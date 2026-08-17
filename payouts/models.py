@@ -1,9 +1,12 @@
 import logging
 
+from datetime import timedelta
 from decimal import Decimal
 
+from django.conf import settings
 from django.db import models
 from django.db import transaction as db_transaction
+from django.utils import timezone
 
 
 from callbacks.tasks import send_callback_notification
@@ -13,6 +16,7 @@ from pricing.models import PAYOUT_PROVIDER_CHOICES
 from user_accounts.models import Business
 from validators import ALPHANUMERIC_ONLY
 from wallet.models import Wallet
+from zoho import send_zoho_message_api
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +43,8 @@ class PayoutRequest(AliasModel):
     provider_reference = models.CharField(max_length=255, blank=True, null=True, validators=[ALPHANUMERIC_ONLY])
     tracking_id = models.CharField(max_length=100, blank=True, null=True)
     tracking_id_2 = models.CharField(max_length=100, blank=True, null=True)
+    query_tracking_id = models.CharField(max_length=100, blank=True, null=True, help_text="OriginatorConversationID of the most recent TransactionStatusQuery sent for this payout")
+    query_tracking_id_2 = models.CharField(max_length=100, blank=True, null=True, help_text="ConversationID of the most recent TransactionStatusQuery sent for this payout")
     init_response = models.JSONField(blank=True, null=True)
     callback_response = models.JSONField(blank=True, null=True)
     message = models.CharField(max_length=255, blank=True, null=True)
@@ -125,3 +131,67 @@ class PayoutRequest(AliasModel):
 
     def complete(self):
         send_callback_notification.apply_async(args=[self.id, "PAYOUT",])
+
+    # How long to keep polling an unresolved payout before flagging it for manual review.
+    # Money has already left the wallet in send(), so we never auto-refund on ambiguous
+    # results here - only an explicit failure signal from Safaricom does that (see
+    # payouts.tasks.process_mpesa_payout_callback).
+    QUERY_REVIEW_MINUTES = 120
+
+    def query_status(self):
+        from payouts.processors import get_queryable_processor
+
+        if self.status != "PROCESSING" or not self.tracking_id:
+            return None
+
+        processor = get_queryable_processor(self.provider, self.country)
+        if processor is None:
+            # No processor registered for this provider/country combo supports status
+            # polling yet - nothing to do.
+            return None
+
+        try:
+            status_code, response = processor.query_transaction_status(self)
+        except Exception as e:
+            logger.error(f"Error querying status for payout {self.alias_id}: {str(e)}", exc_info=True)
+            return None
+
+        if status_code in range(200, 300) and response.get("ResponseCode") == "0":
+            # This ack only confirms Safaricom accepted the status-check request - the
+            # actual TransactionStatus arrives later via callback using this NEW
+            # conversation id pair. Stored separately from tracking_id/tracking_id_2 (the
+            # original send()'s pair) so repeated status checks don't clobber the audit
+            # trail of the original transaction.
+            self.query_tracking_id = response.get("OriginatorConversationID")
+            self.query_tracking_id_2 = response.get("ConversationID")
+            self.save()
+            return response
+
+        if timezone.now() - self.created_at >= timedelta(minutes=self.QUERY_REVIEW_MINUTES):
+            self.flag_for_review(reason=response.get("errorMessage") or "Payout status query was rejected by provider.")
+
+        return response
+
+    def flag_for_review(self, reason):
+        self.status = "IN_REVIEW"
+        self.message = reason
+        self.save()
+        if not settings.PAYOUT_REVIEW_ALERT_EMAIL:
+            return
+        try:
+            send_zoho_message_api(
+                settings.PAYOUT_REVIEW_ALERT_EMAIL,
+                f"[Manual review required] Payout PO_{self.alias_id} unresolved",
+                (
+                    f"Payout PO_{self.alias_id} has been PROCESSING for over "
+                    f"{self.QUERY_REVIEW_MINUTES} minutes and could not be confirmed with the provider.<br><br>"
+                    f"Provider: {self.provider}<br>"
+                    f"Phone number: {self.phone_number}<br>"
+                    f"Amount: {self.amount} {self.currency}<br>"
+                    f"Tracking ID: {self.tracking_id}<br>"
+                    f"Reason: {reason}<br><br>"
+                    f"Please verify with the provider before taking any action (e.g. refunding the wallet)."
+                ),
+            )
+        except Exception as e:
+            logger.error(f"Error sending manual review alert for payout {self.alias_id}: {str(e)}", exc_info=True)

@@ -83,6 +83,41 @@ def send_existing_invitation_email(email, first_name, inviter_name, business_nam
         raise send_existing_invitation_email.retry(exc=e)
 
 
+@app.task(name="send_login_otp_email_task", queue="email_tasks", max_retries=3, default_retry_delay=60)
+def send_login_otp_email(email, first_name, code):
+    try:
+        context_dict = {
+            'first_name': first_name,
+            'code': code,
+        }
+        html_content = render_to_string('emails/html/login_otp_email.html', context_dict)
+        subject = f"Your Kizuka login code: {code}"
+        send_zoho_message_api(email, subject, html_content)
+        logger.info(f"Login OTP email sent to {email}")
+    except Exception as e:
+        logger.error(f"Failed to send login OTP email to {email}: {str(e)}")
+        raise send_login_otp_email.retry(exc=e)
+
+
+@app.task(name="send_account_credentials_email_task", queue="email_tasks", max_retries=3, default_retry_delay=60)
+def send_account_credentials_email(email, first_name, business_name, username, temp_password, login_url):
+    try:
+        context_dict = {
+            'first_name': first_name,
+            'business_name': business_name,
+            'username': username,
+            'temp_password': temp_password,
+            'login_url': login_url,
+        }
+        html_content = render_to_string('emails/html/account_credentials.html', context_dict)
+        subject = f"Your {business_name} Account Credentials"
+        send_zoho_message_api(email, subject, html_content)
+        logger.info(f"Account credentials email sent to {email}")
+    except Exception as e:
+        logger.error(f"Failed to send account credentials email to {email}: {str(e)}")
+        raise send_account_credentials_email.retry(exc=e)
+
+
 @app.task(name="send_password_reset_email_task", queue="email_tasks", max_retries=3, default_retry_delay=60)
 def send_password_reset_email(email, first_name, reset_link):
     try:

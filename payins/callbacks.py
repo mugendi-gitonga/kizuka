@@ -43,6 +43,11 @@ def mpesa_c2b_callback_url(request):
     try:
         payload = request.data
         print(f"Received mpesa deposit callback at: {datetime.now()}: {request.data}")
+
+        bill_reference = payload.get("BillRefNumber")
+        if bill_reference and bill_reference.startswith("STK-"):
+            return Response("Received callback update", 200)
+
         process_mpesa_c2b_callback.apply_async(
             (False, payload), queue="deposits_results", countdown=3
         )

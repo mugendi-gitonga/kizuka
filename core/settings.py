@@ -43,6 +43,11 @@ ENVIRONMENT = os.environ.get("ENVIRONMENT", "dev")
 
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS").split(",") if os.environ.get("ALLOWED_HOSTS") else []
 
+# Django sits behind nginx/Cloudflare, which terminate TLS and forward plain HTTP -
+# without this, request.is_secure() is always False, breaking CSRF origin checks
+# and secure cookies.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
 
 # Application definition
 
@@ -61,6 +66,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt.token_blacklist",
     "django_countries",
     "django_tables2",
+    "drf_spectacular",
 
     "user_accounts",
     "dashboard",
@@ -69,6 +75,7 @@ INSTALLED_APPS = [
     "callbacks",
     "pricing",
     "wallet",
+    "landing",
 ]
 
 MIDDLEWARE = [
@@ -81,9 +88,15 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 
+    "user_accounts.middlewares.TimezoneMiddleware",
+    "user_accounts.middlewares.EnforceInactivityLogoutMiddleware",
     "user_accounts.middlewares.PreventConcurrentLoginsMiddleware",
     "user_accounts.middlewares.MultisiteAccountHandler",
+    "user_accounts.middlewares.ForcePasswordChangeMiddleware",
 ]
+
+# Force-logout dashboard sessions after this many seconds of inactivity (live environment only).
+INACTIVITY_LOGOUT_SECONDS = 30 * 60
 
 ROOT_URLCONF = 'core.urls'
 
@@ -227,12 +240,51 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 REST_FRAMEWORK = {
-    "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
-    "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
-        "rest_framework.authentication.BasicAuthentication",
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "COERCE_DECIMAL_TO_STRING": True,
+    "DEFAULT_FILTER_BACKENDS": ("django_filters.rest_framework.DjangoFilterBackend",),
+    "DEFAULT_RENDERER_CLASSES": ("rest_framework.renderers.JSONRenderer",),
+    "DEFAULT_PARSER_CLASSES": (
+        "rest_framework.parsers.JSONParser",
+        "rest_framework.parsers.MultiPartParser",
     ),
-    "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "authentications.APITokenAuthentication",
+        # "rest_framework_simplejwt.authentication.JWTAuthentication",
+        # "rest_framework.authentication.BasicAuthentication",
+    ),
+    "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": "30/min",
+        "user": "100/min",
+        "mnos": "10000/min",
+        "burst": "1500/min",
+        "checkout": "45/min",
+        "email": "10/hour",
+    },
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 100,
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Kizuka Core API",
+    "DESCRIPTION": "Kizuka Core APIs Documentation",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "SECURITY_DEFINITIONS": {
+        "BearerAuth": {
+            "type": "http",
+            "scheme": "bearer",
+            "description": "Bearer token authentication using a secret key.",
+        },
+    },
+    "SECURITY": [
+        {"BearerAuth": []},
+    ],
 }
 
 # JWT SETTINGS
@@ -279,6 +331,10 @@ EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS") == 'True'
 EMAIL_USE_SSL = not EMAIL_USE_TLS
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL")
 
+# Recipient for payout stuck-in-review alerts (PayoutRequest.flag_for_review) - sent via
+# the Zoho Mail API, not EMAIL_BACKEND above. No default: unset means the alert is skipped.
+PAYOUT_REVIEW_ALERT_EMAIL = os.environ.get("PAYOUT_REVIEW_ALERT_EMAIL")
+
 
 LOGGING = {
     "version": 1,
@@ -321,6 +377,10 @@ B2C_CONSUMER_KEY = os.environ.get("MPESA_B2C_CONSUMER_KEY")
 B2C_CONSUMER_SECRET = os.environ.get("MPESA_B2C_CONSUMER_SECRET")
 B2C_INITIATOR_NAME = os.environ.get("MPESA_B2C_INITIATOR_NAME")
 B2C_INITIATOR_PASSWORD = os.environ.get("MPESA_B2C_INITIATOR_PASSWORD")
+
+HAKIKISHA_CONSUMER_KEY = os.environ.get("MPESA_B2C_CONSUMER_KEY")
+HAKIKISHA_SECRET = os.environ.get("MPESA_B2C_CONSUMER_SECRET")
+HAKIKISHA_BASE_URL = MPESA_BASE_API_URL
 
 # Zoho Settings
 ZOHO_CLIENT_ID = os.environ.get("ZOHO_CLIENT_ID")

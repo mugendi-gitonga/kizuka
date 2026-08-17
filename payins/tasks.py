@@ -85,6 +85,29 @@ def process_mpesa_c2b_callback(is_stk, payload):
                 send_callback_notification.apply_async(args=[deposit_request.id,"PAYIN",])
 
             return
+
+        else:
+            # Offline C2B: a customer paid the shared paybill/till number directly (not via
+            # our STK push flow). kizuka has no per-business account-number/paybill mapping
+            # today (MPESA_SHORTCODE/MPESA_PARTY_B are single, platform-wide settings, and
+            # neither Business nor Wallet has an account-reference field) - so there is no
+            # safe way to attribute this payment to a business automatically. Fabricating a
+            # mapping here would risk crediting the wrong business's wallet with real money.
+            # Log everything needed for manual reconciliation instead of silently dropping it.
+            bill_ref = payload.get("BillRefNumber")
+            trans_id = payload.get("TransID")
+            msisdn = payload.get("MSISDN")
+            trans_amount = payload.get("TransAmount")
+            trans_time = payload.get("TransTime")
+            short_code = payload.get("BusinessShortCode")
+            logger.error(
+                "Unmatched offline M-Pesa C2B payment - no business mapping exists for this "
+                "account reference. Needs manual reconciliation. "
+                f"TransID={trans_id} BillRefNumber={bill_ref} MSISDN={msisdn} "
+                f"TransAmount={trans_amount} TransTime={trans_time} BusinessShortCode={short_code} "
+                f"full_payload={payload}"
+            )
+            return
     except Exception as e:
         logger.error(f"Error processing MPESA C2B callback: {str(e)}", exc_info=True)
         raise e

@@ -17,8 +17,8 @@ class DepositInitSerializer(serializers.ModelSerializer):
         ]
 
     def validate_amount(self, value):
-        if value < 10 and self.initial_data.get("currency", "KES") == "KES":
-            raise serializers.ValidationError("Amount must be at least 10.")
+        if value < 1 and self.initial_data.get("currency", "KES") == "KES":
+            raise serializers.ValidationError("Amount must be at least 1.")
         return value
 
     def validate(self, data):

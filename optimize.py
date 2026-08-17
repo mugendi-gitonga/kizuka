@@ -55,9 +55,17 @@ def get_business(request):
         if user.is_authenticated and user.is_active:
             biz = request.user.business_memberships.first()
             if not biz:
-                business = get_business_model().objects.create(
-                    owner=user, name=f"{user.first_name}'s Business"
+                # Staff/admin accounts (e.g. superusers) aren't business owners -
+                # don't phantom-provision a business for them just because they hit a page.
+                if user.is_staff:
+                    return None
+                # Keyed on the unique email/username rather than first_name, which is
+                # frequently blank or shared across users and collides with Business.name's
+                # unique constraint (was raising an unhandled IntegrityError on every request).
+                business, created = get_business_model().objects.get_or_create(
+                    owner=user, defaults={"name": f"{user.username}'s Business"}
                 )
-                business.team_members.create(user=user, role="admin", is_active=True)
-                return business    
+                if created:
+                    business.team_members.create(user=user, role="admin", is_active=True)
+                return business
             return biz.business

@@ -1,4 +1,5 @@
 import random
+import secrets
 import string
 import uuid
 import phonenumbers
@@ -89,6 +90,11 @@ def get_tokens_for_user(user):
         "refresh": str(refresh),
         "access": str(refresh.access_token),
     }
+
+
+def generate_temp_password(length=12):
+    alphabet = string.ascii_letters + string.digits + "!@#$%"
+    return "".join(secrets.choice(alphabet) for _ in range(length))
 
 
 def generate_unique_username(length=8):

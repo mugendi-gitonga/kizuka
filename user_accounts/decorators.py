@@ -35,7 +35,10 @@ def require_business_role(allowed_roles=["admin", "staff"]):
             if not business:
                 raise PermissionDenied("Business context missing.")
 
-            # 2. Check if this user has an active, non-archived membership
+            # 2. Owner always passes, same as business_admin_required
+            is_owner = request.user == business.owner
+
+            # 3. Check if this user has an active, non-archived membership
             membership = BusinessTeamMember.objects.filter(
                 user=request.user,
                 business=business,
@@ -43,15 +46,15 @@ def require_business_role(allowed_roles=["admin", "staff"]):
                 archived=False,
             ).first()
 
-            # 3. Validate membership and role
-            if not membership or membership.role not in allowed_roles:
+            # 4. Validate membership and role
+            if not is_owner and (not membership or membership.role not in allowed_roles):
                 raise PermissionDenied(
                     "You do not have the required role for this business."
                 )
 
-            # 4. Inject membership into request for easy access in the view
+            # 5. Inject membership into request for easy access in the view
             request.business_membership = membership
-            request.current_business = membership.business
+            request.current_business = membership.business if membership else business
 
             return view_func(request, *args, **kwargs)
 

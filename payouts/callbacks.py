@@ -26,7 +26,7 @@ def mpesa_payout_callback_url(request):
         payload = request.data
         print(f"Received MPESA-B2C payout callback at: {datetime.now()}: {request.data}")
         process_mpesa_payout_callback.apply_async(
-            (payload,), queue="payout_results", countdow=3
+            (payload,), queue="payout_results", countdown=3
         )
         return Response("Received callback update", 200)
     except Exception as ex:

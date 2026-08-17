@@ -8,7 +8,7 @@ from django.conf import settings
 from django.contrib.auth import authenticate, login
 
 
-from pricing.models import BusinessPricingPlan
+from pricing.models import BusinessPricingPlan, BusinessAccountLimits
 from user_accounts.tasks import send_existing_invitation_email, send_invitation_email, send_verification_email
 from utils import check_phone_number, encode_jwt
 from wallet.models import Wallet
@@ -49,6 +49,26 @@ class LoginForm(forms.Form):
                 raise forms.ValidationError("Invalid email or password.")
             cleaned_data['user'] = user
         return cleaned_data
+
+
+class VerifyOTPForm(forms.Form):
+    code = forms.CharField(
+        max_length=6,
+        min_length=6,
+        required=True,
+        widget=forms.TextInput(attrs={
+            'placeholder': '000000',
+            'inputmode': 'numeric',
+            'autocomplete': 'one-time-code',
+            'class': 'input input-bordered w-full bg-white border-slate-300 focus:border-blue-600 focus:outline-none text-center tracking-[0.5em] text-2xl font-semibold'
+        })
+    )
+
+    def clean_code(self):
+        code = self.cleaned_data.get('code', '').strip()
+        if not code.isdigit():
+            raise forms.ValidationError("Enter the 6-digit code.")
+        return code
 
 
 class SignUpForm(forms.Form):
@@ -159,6 +179,7 @@ class SignUpForm(forms.Form):
 
             BusinessPricingPlan.seed_business_plans(business)
             Wallet.seed_wallets_for_business(business)
+            BusinessAccountLimits.save_limits(business)
 
             business.team_members.create(
                 user=user,
@@ -184,6 +205,129 @@ class SignUpForm(forms.Form):
             send_verification_email.apply_async(args=[user.email, user.first_name, verification_link])
 
             return user
+
+
+class AdminCreateBusinessForm(forms.Form):
+    """Staff-only: provision a new business/owner with a system-generated temp password,
+    e.g. when Kizuka ops onboards a merchant on their behalf rather than the merchant
+    self-signing-up via SignUpForm. The owner is forced to change the temp password on
+    first login (see ForcePasswordChangeMiddleware)."""
+
+    business_name = forms.CharField(
+        max_length=30,
+        required=True,
+        widget=forms.TextInput(attrs={
+            'placeholder': 'Merchant Business Name',
+            'class': 'input input-bordered w-full bg-white border-slate-300 focus:border-blue-600 focus:outline-none'
+        })
+    )
+    first_name = forms.CharField(
+        max_length=30,
+        required=True,
+        widget=forms.TextInput(attrs={
+            'placeholder': 'John',
+            'class': 'input input-bordered w-full bg-white border-slate-300 focus:border-blue-600 focus:outline-none'
+        })
+    )
+    last_name = forms.CharField(
+        max_length=30,
+        required=True,
+        widget=forms.TextInput(attrs={
+            'placeholder': 'Doe',
+            'class': 'input input-bordered w-full bg-white border-slate-300 focus:border-blue-600 focus:outline-none'
+        })
+    )
+    email = forms.EmailField(
+        max_length=255,
+        required=True,
+        widget=forms.EmailInput(attrs={
+            'placeholder': 'owner@example.com',
+            'class': 'input input-bordered w-full bg-white border-slate-300 focus:border-blue-600 focus:outline-none'
+        })
+    )
+    country = forms.CharField(
+        max_length=3,
+        required=False,
+        widget=forms.Select(attrs={
+            'class': 'w-full px-3 py-2 rounded-lg bg-white border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600'
+        })
+    )
+    phone_number = forms.CharField(
+        max_length=20,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'placeholder': '+1 (555) 123-4567',
+            'class': 'input input-bordered w-full bg-white border-slate-300 focus:border-blue-600 focus:outline-none'
+        })
+    )
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if User.objects.filter(email=email).exists():
+            raise forms.ValidationError("A user with this email already exists.")
+        return email
+
+    def clean_phone_number(self):
+        phone_number = self.cleaned_data.get('phone_number')
+        if phone_number and not phone_number.isdigit():
+            raise forms.ValidationError("Phone number must contain only digits.")
+
+        phone_number = check_phone_number(phone_number, country=self.cleaned_data.get('country'))
+        return phone_number
+
+    def save(self):
+        from utils import generate_temp_password
+        from user_accounts.tasks import send_account_credentials_email
+
+        with db_transaction.atomic():
+            temp_password = generate_temp_password()
+
+            user = User.objects.create_user(
+                username=self.cleaned_data['email'],
+                email=self.cleaned_data['email'],
+                first_name=self.cleaned_data['first_name'],
+                last_name=self.cleaned_data['last_name'],
+            )
+            user.set_password(temp_password)
+            user.save()
+
+            business = Business.objects.create(
+                owner=user,
+                name=self.cleaned_data['business_name']
+            )
+
+            BusinessPricingPlan.seed_business_plans(business)
+            Wallet.seed_wallets_for_business(business)
+            BusinessAccountLimits.save_limits(business)
+
+            business.team_members.create(
+                user=user,
+                role='admin',
+                is_active=True
+            )
+
+            UserProfile.objects.create(
+                user=user,
+                phone_number=self.cleaned_data.get('phone_number'),
+                email_verified=True,
+                must_change_password=True,
+            )
+
+            login_url = f"{settings.FRONTEND_URL}/login/"
+            db_transaction.on_commit(
+                lambda: send_account_credentials_email.apply_async(
+                    args=[
+                        user.email,
+                        user.first_name,
+                        business.name,
+                        user.email,
+                        temp_password,
+                        login_url,
+                    ]
+                )
+            )
+
+            return user, business
 
 
 class ForgotPasswordForm(forms.Form):

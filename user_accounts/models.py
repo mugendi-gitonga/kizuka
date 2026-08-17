@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User, Group
 from django.contrib.auth import user_logged_in
 from django.db import transaction as db_transaction
+from django.utils import timezone
 
 from common import AliasModel
 
@@ -18,6 +19,7 @@ class UserProfile(AliasModel):
     invite_token_hash = models.TextField(blank=True, null=True)
     invite_requested_at = models.DateTimeField(blank=True, null=True)
     invite_used = models.BooleanField(default=False)
+    must_change_password = models.BooleanField(default=False)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -146,6 +148,40 @@ class InviteUserLog(AliasModel):
 
     def __str__(self):
         return f"{self.user.email} - {self.business.name} - {self.get_status_display()} - {self.created_at}"
+
+
+class LoginOTP(AliasModel):
+    """One-time email code required to complete a login, issued after password verification"""
+
+    MAX_ATTEMPTS = 5
+    EXPIRY_MINUTES = 10
+    RESEND_COOLDOWN_SECONDS = 60
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="login_otps")
+    code_hash = models.CharField(max_length=64)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+    attempts = models.PositiveSmallIntegerField(default=0)
+    ip_address = models.GenericIPAddressField(blank=True, null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Login OTP"
+        verbose_name_plural = "Login OTPs"
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["user", "-created_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user.email} - {self.created_at}"
+
+    def is_expired(self):
+        return timezone.now() > self.expires_at
+
+    def is_locked(self):
+        return self.attempts >= self.MAX_ATTEMPTS
 
 
 class UserSession(models.Model):

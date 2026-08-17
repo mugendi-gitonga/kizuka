@@ -15,6 +15,15 @@
                 <form method="post" class="space-y-5">
                     {% csrf_token %}
 
+                    <!-- Session Expired Notice -->
+                    {% if session_expired %}
+                        <div class="alert alert-warning bg-amber-50 border border-amber-200 rounded-lg p-4">
+                            <div class="text-sm text-amber-700">
+                                <p>Your session expired due to inactivity. Please sign in again.</p>
+                            </div>
+                        </div>
+                    {% endif %}
+
                     <!-- Display Form Errors -->
                     {% if form.non_field_errors %}
                         <div class="alert alert-error bg-red-50 border border-red-200 rounded-lg p-4">
